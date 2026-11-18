@@ -122,6 +122,9 @@ impl Desktop {
     pub(super) fn new(window: &DesktopWindow, commands: mpsc::Sender<QueueCommand>) -> Self {
         let rows = Rc::new(VecModel::default());
         window.set_files(ModelRc::from(rows.clone()));
+        window.set_quality_minimum(i32::from(Quality::MIN));
+        window.set_quality_maximum(i32::from(Quality::MAX));
+        window.set_quality(i32::from(Quality::DEFAULT.value()));
         Self {
             commands,
             rows,
@@ -159,9 +162,12 @@ impl Desktop {
             self.prores_profiles.clear();
             window.set_encoders(model(Vec::new()));
             window.set_presets(model(Vec::new()));
+            window.set_preset_descriptions(model(Vec::new()));
             window.set_profiles(model(Vec::new()));
+            window.set_profile_descriptions(model(Vec::new()));
             window.set_prores_profiles(model(Vec::new()));
-            window.set_quality_label("Qualidade".into());
+            window.set_quality_code("".into());
+            window.set_quality_explanation("".into());
             window.set_detecting(true);
             window.set_encoder_message("".into());
             window.set_prores_message("".into());
@@ -179,14 +185,16 @@ impl Desktop {
             return;
         };
         let options = &encoder.options;
-        window.set_quality_label(
-            match options.quality_mode {
-                QualityMode::Crf => "CRF",
-                QualityMode::ConstantQuality => "Qualidade constante",
-                QualityMode::ConstantQuantizer => "Quantizador (CQP)",
-            }
-            .into(),
-        );
+        let (code, explanation) = match options.quality_mode {
+            QualityMode::Crf => ("CRF", "O x264 ajusta a compressão conforme a cena."),
+            QualityMode::ConstantQuality => (
+                "CQ",
+                "O NVENC varia o bitrate para atingir a meta de qualidade.",
+            ),
+            QualityMode::ConstantQuantizer => ("QP", "O VA-API usa um nível fixo de quantização."),
+        };
+        window.set_quality_code(code.into());
+        window.set_quality_explanation(explanation.into());
 
         let preferred = match encoder.target {
             EncoderTarget::Vaapi { .. } => SpeedPreset::Automatic,
@@ -203,26 +211,30 @@ impl Desktop {
             .iter()
             .position(|profile| *profile == H264Profile::High)
             .unwrap_or_default();
-        window.set_presets(model(
-            options
-                .presets
-                .iter()
-                .map(|&preset| preset_label(preset).into())
-                .collect(),
-        ));
-        window.set_profiles(model(
-            options
-                .profiles
-                .iter()
-                .map(|profile| {
-                    SharedString::from(match profile {
-                        H264Profile::Baseline => "Baseline",
-                        H264Profile::Main => "Main",
-                        H264Profile::High => "High",
-                    })
-                })
-                .collect(),
-        ));
+        let (presets, preset_descriptions) = options
+            .presets
+            .iter()
+            .map(|&preset| {
+                let (label, description) = preset_text(preset);
+                (label.into(), description.into())
+            })
+            .unzip();
+        let (profiles, profile_descriptions) = options
+            .profiles
+            .iter()
+            .map(|profile| {
+                let (label, description) = match profile {
+                    H264Profile::Baseline => ("Baseline", "Aparelhos antigos"),
+                    H264Profile::Main => ("Main", "Compatibilidade intermediária"),
+                    H264Profile::High => ("High", "Aparelhos modernos"),
+                };
+                (label.into(), description.into())
+            })
+            .unzip();
+        window.set_presets(model(presets));
+        window.set_preset_descriptions(model(preset_descriptions));
+        window.set_profiles(model(profiles));
+        window.set_profile_descriptions(model(profile_descriptions));
         window.set_preset_index(preset as i32);
         window.set_profile_index(profile as i32);
     }
@@ -767,28 +779,28 @@ fn encoder_label(target: &EncoderTarget) -> String {
     }
 }
 
-fn preset_label(preset: SpeedPreset) -> &'static str {
+fn preset_text(preset: SpeedPreset) -> (&'static str, &'static str) {
     match preset {
-        SpeedPreset::Automatic => "Automático",
+        SpeedPreset::Automatic => ("Automático", "Gerenciado pelo encoder"),
         SpeedPreset::X264(preset) => match preset {
-            X264Preset::Ultrafast => "ultrafast",
-            X264Preset::Superfast => "superfast",
-            X264Preset::Veryfast => "veryfast",
-            X264Preset::Faster => "faster",
-            X264Preset::Fast => "fast",
-            X264Preset::Medium => "medium",
-            X264Preset::Slow => "slow",
-            X264Preset::Slower => "slower",
-            X264Preset::Veryslow => "veryslow",
+            X264Preset::Ultrafast => ("ultrafast", "Mais rápido"),
+            X264Preset::Superfast => ("superfast", "Muito rápido"),
+            X264Preset::Veryfast => ("veryfast", "Muito rápido"),
+            X264Preset::Faster => ("faster", "Rápido"),
+            X264Preset::Fast => ("fast", "Rápido"),
+            X264Preset::Medium => ("medium", "Equilibrado"),
+            X264Preset::Slow => ("slow", "Lento"),
+            X264Preset::Slower => ("slower", "Muito lento"),
+            X264Preset::Veryslow => ("veryslow", "Mais lento"),
         },
         SpeedPreset::Nvenc(preset) => match preset {
-            NvencPreset::P1 => "P1",
-            NvencPreset::P2 => "P2",
-            NvencPreset::P3 => "P3",
-            NvencPreset::P4 => "P4",
-            NvencPreset::P5 => "P5",
-            NvencPreset::P6 => "P6",
-            NvencPreset::P7 => "P7",
+            NvencPreset::P1 => ("P1", "Mais rápido"),
+            NvencPreset::P2 => ("P2", "Muito rápido"),
+            NvencPreset::P3 => ("P3", "Rápido"),
+            NvencPreset::P4 => ("P4", "Equilibrado"),
+            NvencPreset::P5 => ("P5", "Lento"),
+            NvencPreset::P6 => ("P6", "Muito lento"),
+            NvencPreset::P7 => ("P7", "Mais lento"),
         },
     }
 }

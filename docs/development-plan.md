@@ -2,7 +2,7 @@
 
 **Cards 1 a 5 implementados.** O card 5 entrega os pacotes locais. A matriz registra as verificações pendentes em Silverblue e nas docks. O protótipo da Fase 1 serve de referência de composição. [Validação da distribuição](card-5-distribuicao.md)
 
-**Cards 6 e 7 implementados. Card 8 proposto.** A barra própria foi validada em Wayland e X11. A saída ProRes foi verificada no Fedora e no bundle Flatpak. [Evidências do card 6](card-6-barra-de-titulo.md) · [Evidências do card 7](card-7-prores.md)
+**Cards 6 a 8 implementados.** A barra própria foi validada em Wayland e X11, a saída ProRes foi verificada no Fedora e no Flatpak e o painel H.264 ganhou rótulos e ajuda de contexto. [Card 6](card-6-barra-de-titulo.md) · [Card 7](card-7-prores.md) · [Card 8](card-8-ajustes.md)
 
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
@@ -73,3 +73,5 @@
 **Entrega.** Reaproveitar os controles Slint e acrescentar uma ação compacta **Entenda os ajustes** que abre as três explicações. Vincular os rótulos aos valores do motor, com qualidade de 18 a 28 e valor inicial 22. Atualizar os textos ao trocar de encoder. Aplicar a ajuda de perfil H.264 ao modo H.264 e usar os rótulos de perfil do card 7 no modo ProRes.
 
 **Aceite.** Conferir as três variantes de encoder, incluindo VA-API em Automático, e a troca entre H.264 e ProRes. Verificar contraste, legibilidade e ausência de truncamento na janela mínima de 880×640 px lógicos a 100% e 150%. Testar a barra, os seletores e a ajuda com mouse e teclado, incluindo foco visível, fechar com Esc e devolver o foco à ação de ajuda. Confirmar que os valores enviados à fila correspondem aos selecionados e entregar uma captura para revisão visual.
+
+**Entrega.** A barra mostra os efeitos de 18 e 28. Os seletores exibem o efeito de velocidade e a compatibilidade do perfil. A ajuda abre dentro da janela e pode ser reaberta pelo teclado depois de Esc. [Verificação e capturas](card-8-ajustes.md)

@@ -1,0 +1,73 @@
+import { Action, Heading, Label, Rule, Theme } from "controls.slint";
+
+component HelpTopic inherits VerticalLayout {
+    in property <string> title;
+    in property <string> explanation;
+
+    spacing: 3px;
+    Label { text: root.title; }
+    Label {
+        text: root.explanation;
+        min-width: 0px;
+        wrap: word-wrap;
+        font-size: 13px;
+        color: Theme.secondary;
+    }
+}
+
+export component OutputHelp inherits FocusScope {
+    in property <string> quality-explanation;
+    callback closed();
+
+    height: 284px;
+    forward-focus: dismiss;
+
+    key-pressed(event) => {
+        if event.text == Key.Escape {
+            root.closed();
+            return accept;
+        }
+        if event.text == Key.Tab || event.text == Key.Backtab {
+            return accept;
+        }
+        return reject;
+    }
+
+    // Swallow pointer presses on the card so that only the area around it dismisses it.
+    TouchArea {}
+
+    Rectangle {
+        background: Theme.surface;
+        border-radius: Theme.radius;
+        border-width: 1px;
+        border-color: Theme.control-border;
+
+        VerticalLayout {
+            padding: 14px;
+            spacing: 8px;
+            HorizontalLayout {
+                spacing: 8px;
+                Heading { text: "Ajustes H.264"; font-size: 16px; horizontal-stretch: 1; }
+                dismiss := Action {
+                    label: "Fechar";
+                    min-height: 28px;
+                    clicked => { root.closed(); }
+                }
+            }
+            Rule {}
+            HelpTopic {
+                title: "Qualidade do vídeo";
+                explanation: root.quality-explanation
+                    + " Valores menores preservam detalhes e tendem a gerar arquivos maiores. O tamanho depende do vídeo.";
+            }
+            HelpTopic {
+                title: "Velocidade (preset)";
+                explanation: "Presets rápidos encurtam o lote. Presets lentos dedicam mais tempo à compressão.";
+            }
+            HelpTopic {
+                title: "Perfil H.264";
+                explanation: "Define as técnicas de compressão usadas e a compatibilidade com o aparelho de destino.";
+            }
+        }
+    }
+}
