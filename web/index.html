@@ -300,15 +300,16 @@
         </a>
       </header>
 
+      <p class="section-note">Prévia 0.1.0 para Linux x86_64. <a class="artifact-link" href="downloads/SHA256SUMS" download>Ver checksums SHA-256</a></p>
       <div class="download-list">
         <article class="download-row" id="fedora">
           <div class="download-heading">
             <div><h3>Fedora</h3><p>RPM ou build local</p></div>
-            <p class="download-status">Build local disponível</p>
+            <p class="download-status"><a class="artifact-link" href="downloads/velox-transcode-0.1.0-1.fc44.x86_64.rpm" download>Baixar RPM</a></p>
           </div>
-          <p>Na raiz do repositório, instale o binário da prévia 0.1.0 em <code>~/.local/bin</code> com o Cargo. O RPM está em preparação.</p>
+          <p>Instale o RPM na pasta em que ele foi baixado. Para compilar e instalar só na sua conta, execute <code>./install.sh</code> na raiz do repositório.</p>
           <div class="command-line">
-            <code id="command-fedora" tabindex="-1">cargo install --path . --locked --root ~/.local</code>
+            <code id="command-fedora" tabindex="-1">sudo dnf install ./velox-transcode-0.1.0-1.fc44.x86_64.rpm</code>
             <button class="button compact secondary copy-button" type="button" data-copy="command-fedora" aria-label="Copiar comando do Fedora">
               <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span>
             </button>
@@ -319,9 +320,9 @@
         <article class="download-row" id="flatpak">
           <div class="download-heading">
             <div><h3>Flatpak</h3><p>Bundle local</p></div>
-            <p class="download-status">Em preparação</p>
+            <p class="download-status"><a class="artifact-link" href="downloads/velox-transcode.flatpak" download>Baixar bundle</a></p>
           </div>
-          <p>Comando previsto para instalar o bundle na sua conta quando o arquivo estiver disponível.</p>
+          <p>Instale na sua conta. O runtime KDE 6.11 inclui Qt 6, FFmpeg e ffprobe.</p>
           <div class="command-line">
             <code id="command-flatpak" tabindex="-1">flatpak install --user ./velox-transcode.flatpak</code>
             <button class="button compact secondary copy-button" type="button" data-copy="command-flatpak" aria-label="Copiar comando do Flatpak">
@@ -334,11 +335,11 @@
         <article class="download-row" id="arch">
           <div class="download-heading">
             <div><h3>Arch Linux</h3><p>Tarball para x86_64</p></div>
-            <p class="download-status">Em preparação</p>
+            <p class="download-status"><a class="artifact-link" href="downloads/velox-transcode-linux-x86_64.tar.gz" download>Baixar tarball</a></p>
           </div>
-          <p>Comando previsto para instalar o tarball em <code>~/.local</code>. O binário depende de Qt 6 e do FFmpeg.</p>
+          <p>Extraia o tarball e execute o instalador para registrar o app em <code>~/.local</code>. O binário usa Qt 6 e FFmpeg do sistema.</p>
           <div class="command-line">
-            <code id="command-arch" tabindex="-1">mkdir -p ~/.local &amp;&amp; tar -xzf velox-transcode-linux-x86_64.tar.gz -C ~/.local</code>
+            <code id="command-arch" tabindex="-1">tar -xzf velox-transcode-linux-x86_64.tar.gz &amp;&amp; ./velox-transcode/install.sh</code>
             <button class="button compact secondary copy-button" type="button" data-copy="command-arch" aria-label="Copiar comando do tarball para Arch">
               <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span>
             </button>

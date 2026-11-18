@@ -19,4 +19,4 @@ Os nove pares de cores de texto medidos na renderização inicial atingiram pelo
 
 Os depoimentos têm citações e avatares tipográficos identificados como exemplos com personagens fictícios. Substitua esse conteúdo quando houver material autorizado. Os links de comunidades no rodapé são do Fedora e do FFmpeg.
 
-A opção Fedora usa `cargo install` sobre o código da prévia. O comando foi executado no Fedora com um prefixo temporário e gerou um binário release funcional. O RPM e o instalador com integração à dock entram no card 5. Flatpak e Arch Linux exibem comandos previstos, com os canais marcados como **Em preparação**. Confirme o nome e o layout dos artefatos gerados antes de atualizar os comandos e disponibilidades. [Instalação de binários pelo Cargo](https://doc.rust-lang.org/cargo/commands/cargo-install.html) · [Uso do Flatpak](https://docs.flatpak.org/en/latest/using-flatpak.html)
+O card 5 atualizou o Download com os artefatos da versão 0.1.0, os comandos de instalação e os checksums. Gere os arquivos em `web/downloads/` para testar os links em um novo checkout. [Distribuição e checksums](card-5-distribuicao.md)

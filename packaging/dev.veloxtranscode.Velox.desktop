@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Velox Transcode
+Comment=Converta vídeos em lote para H.264
+Exec=velox-transcode %F
+Icon=dev.veloxtranscode.Velox
+Terminal=false
+Categories=AudioVideo;Video;
+MimeType=video/mp4;video/x-matroska;video/webm;video/quicktime;
+StartupNotify=true
+StartupWMClass=velox-transcode

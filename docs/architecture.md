@@ -18,7 +18,7 @@ O card 1 entregou o manifesto, o lockfile, o perfil release e a prova de entrada
 
 Os seletores de vídeos e de pasta de destino usam `rfd` assíncrono via XDG Desktop Portal. Arraste, portal e argumentos de abertura convergem em `QueueCommand::AddFiles`. Os valores permanecem `PathBuf` até a apresentação. Os seletores abrem sem uma janela pai exportada pelo backend Qt. [rfd 0.18.0](https://docs.rs/rfd/0.18.0/rfd/)
 
-Identidade provisória `dev.veloxtranscode.Velox` para o nome do .desktop, ícone e app ID Wayland, sujeita à confirmação do namespace para publicação. A classe medida em X11 nesta compilação foi `velox-transcode`; o card 5 repete a medição no artefato instalado antes de definir `StartupWMClass`. [Ambientes e evidências](card-1-fedora.md)
+O desktop entry, o ícone e o app ID Wayland usam `dev.veloxtranscode.Velox`, sujeito à confirmação do namespace para publicação. Em X11, `StartupWMClass=velox-transcode` corresponde à classe medida com o aplicativo instalado. [Ambientes e evidências](card-5-distribuicao.md)
 
 ## Contratos de integração
 
@@ -48,4 +48,4 @@ A interface recebe `QueueEvent` de [`queue::spawn`](../src/queue/mod.rs) e aplic
 
 A landing do card 4 usa HTML estático, fontes locais e JavaScript compartilhado pelos quatro mockups. Cada demo tem estado próprio e usa arquivos de exemplo. Os controles e os estados reproduzem a interface do card 3. Declarações de desempenho, depoimentos e links de instalação seguem as evidências do card 5 e os insumos do usuário.
 
-A aplicação e seu .desktop são instalados dentro de `~/.local` no host. No Silverblue, compilar em Toolbx quando apropriado e validar dependências de runtime no host. Flatpak precisa de FFmpeg dentro do sandbox, portal, notificação e acesso gráfico/dispositivos compatível com os drivers. RPM e tarball documentam as dependências externas. AV1/HEVC como entradas e H.264 como saída exigem testar o build real de FFmpeg. [Fedora Silverblue](https://docs.fedoraproject.org/en-US/fedora-silverblue/) · [Flatpak, permissões de sandbox](https://docs.flatpak.org/en/latest/sandbox-permissions.html)
+O instalador do usuário e o tarball gravam em `~/.local`. RPM, Flatpak e instalação local compartilham o desktop entry, o ícone e os avisos de licença das fontes. O RPM e o tarball usam o FFmpeg e o Qt 6 da distribuição. O Flatpak compila no KDE SDK 6.11 e usa o FFmpeg do runtime, com acesso Wayland/X11, portais, nós DRM e notificações. O script de release gera os três pacotes e o manifesto SHA-256 referenciados na landing. [Distribuição e testes](card-5-distribuicao.md)
