@@ -46,6 +46,6 @@ A interface recebe `QueueEvent` de [`queue::spawn`](../src/queue/mod.rs) e aplic
 
 ## Web e distribuição
 
-O navegador reproduz interações com fixtures identificadas. O card 4 mantém HTML semântico e JavaScript compartilhado entre os mockups, sincronizando nomes, estados e geometria com o card 3. Declarações de desempenho, depoimentos e links de instalação seguem as evidências do card 5 e os insumos do usuário.
+A landing do card 4 usa HTML estático, fontes locais e JavaScript compartilhado pelos quatro mockups. Cada demo tem estado próprio e usa arquivos de exemplo. Os controles e os estados reproduzem a interface do card 3. Declarações de desempenho, depoimentos e links de instalação seguem as evidências do card 5 e os insumos do usuário.
 
 A aplicação e seu .desktop são instalados dentro de `~/.local` no host. No Silverblue, compilar em Toolbx quando apropriado e validar dependências de runtime no host. Flatpak precisa de FFmpeg dentro do sandbox, portal, notificação e acesso gráfico/dispositivos compatível com os drivers. RPM e tarball documentam as dependências externas. AV1/HEVC como entradas e H.264 como saída exigem testar o build real de FFmpeg. [Fedora Silverblue](https://docs.fedoraproject.org/en-US/fedora-silverblue/) · [Flatpak, permissões de sandbox](https://docs.flatpak.org/en/latest/sandbox-permissions.html)

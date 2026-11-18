@@ -1,6 +1,6 @@
 # Plano de desenvolvimento em cinco cards
 
-**Cards 1 a 3 implementados e verificados. Cards 4 e 5 aguardam início.** O protótipo da Fase 1 serve de referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
+**Cards 1 a 4 implementados e verificados. Card 5 aguarda início.** O protótipo da Fase 1 serve de referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
 
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
@@ -26,7 +26,7 @@
 
 **Pode começar após aprovação visual.** Completar Announcement → Header → Hero → Features alternadas (codecs, presets, fila) → Testimonials (três linhas, autor/cargo e avatar) → Download (Fedora RPM/Build Local, Flatpak, Arch/Tarball) → FAQ (seis respostas abertas) → Footer (marca, três grupos de links, sociais, copyright e nota técnica). Reutilizar o mockup do checkpoint e manter a correspondência com os estados do card 3. Usar depoimentos autorizados e destinos fornecidos; se indisponíveis, registrar a pendência e identificar qualquer conteúdo de revisão como provisório.
 
-**Aceite.** Testar em 1440 e 390 px, sem overflow horizontal. Cada seção de conteúdo após o Hero tem título de duas linhas e uma ação pequena alinhada à última linha, sem CTA no rodapé da seção. Verificar teclado, foco, contraste, funcionamento dos três mockups, seletor H.264, comandos copiáveis e seis respostas visíveis. Revisar disponibilidades, downloads e comandos junto com o card 5.
+**Aceite.** Testar em 1440 e 390 px, sem overflow horizontal. Cada seção de conteúdo após o Hero tem título de duas linhas e uma ação pequena alinhada à última linha, sem CTA no rodapé da seção. Verificar teclado, foco, contraste, funcionamento dos três mockups, seletor H.264, comandos copiáveis e seis respostas visíveis. Revisar disponibilidades, downloads e comandos junto com o card 5. [Evidências da landing](card-4-landing.md).
 
 ## Card 5 — Instalação, empacotamento e validação final
 

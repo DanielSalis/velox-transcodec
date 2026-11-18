@@ -40,4 +40,4 @@ Use Hairline para divisão decorativa. Contornos que identificam áreas editáve
 
 Announcement em linha única para a prévia Fedora, cabeçalho recuado com a marca, quatro links e ação primária. Hero centralizado com título em duas linhas, duas ações, legenda de privacidade e três capacidades. A janela abaixo resume a experiência de uso com arquivos de exemplo, metadados por linha, controles de saída H.264 e fila executável. Em 390 px, os quatro links ficam em um menu e a janela empilha lista, configuração e fila. A seleção, os valores do formulário e o início da fila são acionáveis por teclado.
 
-A ação de instalação abre a informação de disponibilidade no checkpoint. A versão completa usa os canais e comandos verificados no card 5.
+As ações de instalação levam à seção Download. O Hero e as três linhas de Recursos usam controles HTML independentes. A seção de depoimentos identifica a autoria ilustrativa, e Download informa a disponibilidade de cada canal.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Prévia interativa do Velox Transcode, conversor de vídeo em lote para Fedora.">
+  <meta name="description" content="Velox Transcode, conversor nativo de vídeo em lote para Fedora. Experimente a fila, os controles H.264 e a detecção de codecs.">
   <meta name="theme-color" content="#0f1012">
   <title>Velox Transcode | Vídeo em lote para Fedora</title>
   <link rel="icon" href="assets/velox-transcode.svg" type="image/svg+xml">
@@ -23,13 +23,14 @@
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7z"/></symbol>
     <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m6 1v5H5V7h5"/></symbol>
   </svg>
 
   <a class="skip-link" href="#visao-geral">Ir para o conteúdo</a>
   <div class="announcement">
-    <a href="#instalacao" data-install>
-      <span>Prévia</span><span>VA-API e NVENC no Fedora</span>
+    <a href="#download">
+      <span>Prévia 0.1.0</span><span>VA-API e NVENC no Fedora</span>
       <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
     </a>
   </div>
@@ -43,21 +44,22 @@
       <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
     </button>
     <nav id="site-nav" aria-label="Navegação principal">
-      <a href="#visao-geral">Visão geral</a>
-      <a href="#codecs">Codecs</a>
-      <a href="#encoders">Encoders</a>
-      <a href="#fila">Fila em lote</a>
+      <a href="#recursos">Recursos</a>
+      <a href="#depoimentos">Depoimentos</a>
+      <a href="#download">Download</a>
+      <a href="#faq">FAQ</a>
     </nav>
-    <a class="button primary header-download" href="#instalacao" data-install>Instalação
+    <a class="button primary header-download" href="#download">Instalação
       <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>
     </a>
   </header>
 
-  <main class="container hero" id="visao-geral">
-    <h1><span>Vídeo em lote.</span> <span>No seu Fedora.</span></h1>
+  <main>
+  <section class="container hero" id="visao-geral" tabindex="-1" aria-labelledby="hero-title">
+    <h1 id="hero-title"><span>Vídeo em lote.</span> <span>No seu Fedora.</span></h1>
     <p class="hero-description">Inspecione os arquivos, ajuste a saída H.264 e acompanhe cada conversão em uma janela nativa.</p>
     <div class="hero-actions">
-      <a class="button primary" href="#instalacao" data-install>Ver instalação
+      <a class="button primary" href="#download">Ver instalação
         <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
       </a>
       <a class="button secondary" href="#demonstracao">Testar a demo
@@ -65,13 +67,13 @@
       </a>
     </div>
     <p class="trust"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Seus vídeos ficam no seu computador.</p>
-    <ul class="capabilities" aria-label="Capacidades previstas">
+    <ul class="capabilities" aria-label="Capacidades do aplicativo">
       <li><svg class="icon" aria-hidden="true"><use href="#i-chip"/></svg> VA-API / NVENC</li>
-      <li><svg class="icon" aria-hidden="true"><use href="#i-stack"/></svg> Fila paralela</li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-stack"/></svg> Até 2 jobs x264</li>
       <li><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg> Saída H.264</li>
     </ul>
 
-    <section class="app-window" id="demonstracao" tabindex="-1" aria-labelledby="mockup-title">
+    <section class="app-window" id="demonstracao" data-demo tabindex="-1" aria-labelledby="mockup-title">
       <header class="app-titlebar">
         <div>
           <img src="assets/velox-transcode.svg" width="20" height="20" alt="">
@@ -81,83 +83,316 @@
       </header>
 
       <div class="app-body">
-        <section class="files" id="codecs" tabindex="-1" aria-labelledby="files-title">
+        <section class="files" data-files="0,1,2" aria-labelledby="files-title">
           <header class="panel-heading">
-            <h3 id="files-title">Arquivos <span id="file-count">3</span></h3>
-            <button class="button compact secondary" id="add-file" type="button">
+            <h3 id="files-title">Arquivos <span data-count>3</span></h3>
+            <button class="button compact secondary" data-add type="button">
               <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> Adicionar exemplo
             </button>
           </header>
           <table class="file-table">
             <thead><tr><th scope="col">Arquivo</th><th scope="col">Codec</th><th scope="col">Resolução</th><th scope="col">Duração</th></tr></thead>
-            <tbody id="file-list"></tbody>
+            <tbody data-rows></tbody>
           </table>
           <dl class="file-details" aria-label="Detalhes do arquivo selecionado">
-            <div><dt>FPS</dt><dd id="file-fps">—</dd></div>
-            <div><dt>Bitrate</dt><dd id="file-bitrate">—</dd></div>
-            <div><dt>Tamanho</dt><dd id="file-size">—</dd></div>
+            <div><dt>FPS</dt><dd data-fps>—</dd></div>
+            <div><dt>Bitrate</dt><dd data-bitrate>—</dd></div>
+            <div><dt>Tamanho</dt><dd data-size>—</dd></div>
           </dl>
+          <button class="button compact secondary include-button" data-include type="button">Excluir da fila</button>
         </section>
 
-        <section class="output" id="encoders" tabindex="-1" aria-labelledby="output-title">
+        <section class="output" aria-labelledby="output-title">
           <header class="panel-heading"><h3 id="output-title">Saída <span class="codec-target">H.264</span></h3></header>
-          <fieldset id="output-controls">
+          <fieldset data-encoding>
             <legend class="sr-only">Opções de saída</legend>
             <label class="field">Encoder
-              <select id="encoder">
+              <select data-encoder>
                 <option value="vaapi">VA-API · Intel / AMD</option>
-                <option value="nvenc">NVENC · NVIDIA</option>
+                <option value="nvenc" selected>NVENC · NVIDIA</option>
                 <option value="x264">x264 · CPU</option>
               </select>
             </label>
             <div class="quality">
-              <label for="quality" id="quality-label">Qualidade constante</label>
-              <output for="quality" id="quality-value">22</output>
-              <input type="range" id="quality" min="18" max="28" value="22">
+              <label for="quality" data-quality-label>Qualidade constante</label>
+              <output for="quality" data-quality-value>22</output>
+              <input type="range" id="quality" data-quality min="18" max="28" value="22">
             </div>
             <div class="field-grid">
-              <label class="field">Preset<select id="preset"></select></label>
+              <label class="field">Preset<select data-preset><option>P4</option></select></label>
               <label class="field">Perfil
-                <select id="profile"><option value="baseline">Baseline</option><option>Main</option><option selected>High</option></select>
+                <select data-profile><option>High</option><option>Main</option><option>Baseline</option></select>
               </label>
               <label class="field">Áudio
-                <select id="audio"><option>Copy</option><option>AAC 192 kbps</option><option>AAC 320 kbps</option></select>
+                <select data-audio><option>Copy</option><option>AAC 192 kbps</option><option>AAC 320 kbps</option></select>
               </label>
               <label class="field">Container
-                <select id="container"><option>MP4</option><option>MKV</option><option>MOV</option></select>
+                <select data-container><option>MP4</option><option>MKV</option><option>MOV</option></select>
               </label>
             </div>
+            <label class="field demo-destination">Pasta de destino
+              <select data-destination><option>Vídeos / Convertidos</option><option>Vídeos / Exportações</option></select>
+            </label>
           </fieldset>
         </section>
       </div>
 
-      <section class="app-queue" id="fila" tabindex="-1" aria-labelledby="queue-title">
+      <section class="app-queue" data-queue aria-labelledby="queue-title">
         <div class="queue-summary">
           <div class="queue-heading">
             <h3 id="queue-title">Fila de conversão</h3>
-            <span id="queue-percent">0%</span>
+            <span data-percent>0%</span>
           </div>
-          <progress id="queue-progress" aria-labelledby="queue-title" max="100" value="0"></progress>
-          <p id="queue-status" role="status">3 vídeos prontos</p>
+          <progress data-progress aria-labelledby="queue-title" max="100" value="0"></progress>
+          <p data-queue-status>3 vídeos prontos</p>
+          <p data-queue-announcement class="sr-only" role="status"></p>
         </div>
-        <button class="button primary start-button" id="start-queue" type="button">
+        <button class="button primary start-button" data-start type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>
           <span>Iniciar fila</span>
         </button>
       </section>
     </section>
     <noscript><p class="noscript">Ative JavaScript para selecionar os arquivos e executar a demonstração.</p></noscript>
+  </section>
+
+    <section class="band container" id="recursos" aria-labelledby="recursos-title" tabindex="-1">
+      <header class="section-heading">
+        <h2 id="recursos-title"><span>Do arquivo</span> <span>à fila.</span></h2>
+        <a class="button secondary section-action" href="#demonstracao" aria-label="Abrir a demonstração completa">
+          <span>Abrir a demo</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </header>
+
+      <div class="feature-list">
+        <article class="feature-row" id="codecs" tabindex="-1">
+          <div class="feature-copy">
+            <h3>Descubra o que chegou.</h3>
+            <p>Adicione os vídeos e confira codec, resolução, FPS, bitrate e duração. Selecione um exemplo para ver os metadados que o Velox lê com ffprobe.</p>
+          </div>
+          <div class="app-window feature-window" data-demo>
+            <header class="app-titlebar">
+              <div><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg><p>Detecção de codecs</p></div>
+              <span class="demo-label">Demonstração</span>
+            </header>
+            <div class="files" data-files="0,1,3">
+              <header class="panel-heading">
+                <h4>Arquivos <span data-count>3</span></h4>
+                <button class="button compact secondary" data-add type="button">
+                  <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg> Adicionar exemplo
+                </button>
+              </header>
+              <table class="file-table" aria-label="Metadados dos vídeos de exemplo">
+                <thead><tr><th scope="col">Arquivo</th><th scope="col">Codec</th><th scope="col">Resolução</th><th scope="col">Duração</th></tr></thead>
+                <tbody data-rows></tbody>
+              </table>
+              <dl class="file-details" aria-label="Detalhes do arquivo selecionado">
+                <div><dt>FPS</dt><dd data-fps>—</dd></div>
+                <div><dt>Bitrate</dt><dd data-bitrate>—</dd></div>
+                <div><dt>Tamanho</dt><dd data-size>—</dd></div>
+              </dl>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-row feature-reversed" id="encoders" tabindex="-1">
+          <div class="feature-copy">
+            <h3>Escolha a saída H.264.</h3>
+            <p>O Velox testa VA-API, NVENC e x264 antes de oferecer os encoders. Alterne o encoder na demo para ver os controles disponíveis em cada opção.</p>
+          </div>
+          <div class="app-window feature-window" data-demo>
+            <header class="app-titlebar">
+              <div><svg class="icon" aria-hidden="true"><use href="#i-chip"/></svg><p>Configuração de saída</p></div>
+              <span class="demo-label">Demonstração</span>
+            </header>
+            <div class="output feature-output">
+              <fieldset data-encoding>
+                <legend class="sr-only">Configuração de exemplo em H.264</legend>
+                <label class="field">Encoder
+                  <select data-encoder>
+                    <option value="vaapi">VA-API · Intel / AMD</option>
+                    <option value="nvenc" selected>NVENC · NVIDIA</option>
+                    <option value="x264">x264 · CPU</option>
+                  </select>
+                </label>
+                <div class="quality">
+                  <label for="feature-quality" data-quality-label>Qualidade constante</label>
+                  <output for="feature-quality" data-quality-value>22</output>
+                  <input type="range" id="feature-quality" data-quality min="18" max="28" value="22">
+                </div>
+                <div class="field-grid">
+                  <label class="field">Preset<select data-preset><option>P4</option></select></label>
+                  <label class="field">Perfil<select data-profile><option>High</option><option>Main</option><option>Baseline</option></select></label>
+                  <label class="field">Áudio<select data-audio><option>Copy</option><option>AAC 192 kbps</option><option>AAC 320 kbps</option></select></label>
+                  <label class="field">Container<select data-container><option>MP4</option><option>MKV</option><option>MOV</option></select></label>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </article>
+
+        <article class="feature-row" id="fila" tabindex="-1">
+          <div class="feature-copy">
+            <h3>Veja o lote avançar.</h3>
+            <p>Rode até dois vídeos em paralelo com x264 e acompanhe o progresso, os FPS e o ETA de cada um. Ao concluir, o Velox mostra quanto o tamanho mudou.</p>
+          </div>
+          <div class="app-window feature-window" data-demo>
+            <header class="app-titlebar">
+              <div><svg class="icon" aria-hidden="true"><use href="#i-stack"/></svg><p>Fila de conversão</p></div>
+              <span class="demo-label">Demonstração</span>
+            </header>
+            <div class="files" data-files="1,2,4">
+              <table class="file-table" aria-label="Vídeos na fila de exemplo">
+                <thead><tr><th scope="col">Arquivo</th><th scope="col">Codec</th><th scope="col">Resolução</th><th scope="col">Duração</th></tr></thead>
+                <tbody data-rows></tbody>
+              </table>
+              <dl class="file-details" aria-label="Detalhes do arquivo selecionado">
+                <div><dt>FPS</dt><dd data-fps>—</dd></div>
+                <div><dt>Bitrate</dt><dd data-bitrate>—</dd></div>
+                <div><dt>Tamanho</dt><dd data-size>—</dd></div>
+              </dl>
+            </div>
+            <div class="app-queue" data-queue>
+              <div class="queue-summary">
+                <div class="queue-heading"><h4>Progresso do lote</h4><span data-percent>0%</span></div>
+                <progress aria-label="Progresso do lote de exemplo" data-progress max="100" value="0"></progress>
+                <p data-queue-status aria-live="off">3 vídeos prontos</p>
+                <p data-queue-announcement class="sr-only" role="status"></p>
+              </div>
+              <button class="button primary start-button" data-start type="button">
+                <svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Iniciar fila</span>
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="band container" id="depoimentos" aria-labelledby="depoimentos-title" tabindex="-1">
+      <header class="section-heading">
+        <h2 id="depoimentos-title"><span>Quem edita</span> <span>em lote.</span></h2>
+        <a class="button secondary section-action" href="#codecs" aria-label="Ver o fluxo de arquivos">
+          <span>Ver o fluxo</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </header>
+      <p class="section-note">Citações ilustrativas de personagens fictícios, preparadas para a prévia.</p>
+      <div class="quote-list">
+        <figure class="quote-row">
+          <blockquote>“Se recebo vídeos de várias câmeras, quero saber o codec de cada um antes de montar o lote.”</blockquote>
+          <figcaption><span class="avatar" aria-hidden="true">LM</span><div><strong>Lia Martins</strong><span>Editora de vídeo</span></div></figcaption>
+        </figure>
+        <figure class="quote-row">
+          <blockquote>“Para revisar os cortes, eu preparo cópias em H.264 com o mesmo perfil em todos os arquivos.”</blockquote>
+          <figcaption><span class="avatar" aria-hidden="true">RB</span><div><strong>Rui Braga</strong><span>Assistente de pós-produção</span></div></figcaption>
+        </figure>
+        <figure class="quote-row">
+          <blockquote>“Quando deixo vários vídeos convertendo, quero saber quais já terminaram e encontrar a saída de cada um.”</blockquote>
+          <figcaption><span class="avatar" aria-hidden="true">MC</span><div><strong>Maíra Costa</strong><span>Produtora audiovisual</span></div></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="band container" id="download" aria-labelledby="download-title" tabindex="-1">
+      <header class="section-heading">
+        <h2 id="download-title"><span>Instale</span> <span>no Linux.</span></h2>
+        <a class="button secondary section-action" href="#faq-requisitos" aria-label="Ver requisitos de instalação">
+          <span>Ver requisitos</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </header>
+
+      <div class="download-list">
+        <article class="download-row" id="fedora">
+          <div class="download-heading">
+            <div><h3>Fedora</h3><p>RPM ou build local</p></div>
+            <p class="download-status">Build local disponível</p>
+          </div>
+          <p>Na raiz do repositório, instale o binário da prévia 0.1.0 em <code>~/.local/bin</code> com o Cargo. O RPM está em preparação.</p>
+          <div class="command-line">
+            <code id="command-fedora" tabindex="-1">cargo install --path . --locked --root ~/.local</code>
+            <button class="button compact secondary copy-button" type="button" data-copy="command-fedora" aria-label="Copiar comando do Fedora">
+              <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span>
+            </button>
+            <p class="sr-only" role="status" data-copy-status></p>
+          </div>
+        </article>
+
+        <article class="download-row" id="flatpak">
+          <div class="download-heading">
+            <div><h3>Flatpak</h3><p>Bundle local</p></div>
+            <p class="download-status">Em preparação</p>
+          </div>
+          <p>Comando previsto para instalar o bundle na sua conta quando o arquivo estiver disponível.</p>
+          <div class="command-line">
+            <code id="command-flatpak" tabindex="-1">flatpak install --user ./velox-transcode.flatpak</code>
+            <button class="button compact secondary copy-button" type="button" data-copy="command-flatpak" aria-label="Copiar comando do Flatpak">
+              <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span>
+            </button>
+            <p class="sr-only" role="status" data-copy-status></p>
+          </div>
+        </article>
+
+        <article class="download-row" id="arch">
+          <div class="download-heading">
+            <div><h3>Arch Linux</h3><p>Tarball para x86_64</p></div>
+            <p class="download-status">Em preparação</p>
+          </div>
+          <p>Comando previsto para instalar o tarball em <code>~/.local</code>. O binário depende de Qt 6 e do FFmpeg.</p>
+          <div class="command-line">
+            <code id="command-arch" tabindex="-1">mkdir -p ~/.local &amp;&amp; tar -xzf velox-transcode-linux-x86_64.tar.gz -C ~/.local</code>
+            <button class="button compact secondary copy-button" type="button" data-copy="command-arch" aria-label="Copiar comando do tarball para Arch">
+              <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg><span>Copiar</span>
+            </button>
+            <p class="sr-only" role="status" data-copy-status></p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="band container" id="faq" aria-labelledby="faq-title" tabindex="-1">
+      <header class="section-heading">
+        <h2 id="faq-title"><span>Perguntas</span> <span>frequentes.</span></h2>
+        <a class="button secondary section-action" href="#download" aria-label="Ver opções de instalação">
+          <span>Ver instalação</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+      </header>
+      <dl class="faq-grid">
+        <div id="faq-requisitos" tabindex="-1">
+          <dt>O que preciso no Fedora?</dt><dd>Para compilar, use Rust 1.95 ou mais recente e Qt 6. Para converter, instale FFmpeg e ffprobe com suporte a H.264.</dd>
+        </div>
+        <div>
+          <dt>Preciso de uma GPU?</dt><dd>O Velox testa VA-API e NVENC no host. Com libx264 disponível, você pode converter pela CPU.</dd>
+        </div>
+        <div>
+          <dt>Quais formatos posso abrir?</dt><dd>Você pode abrir MP4, MKV, WebM e MOV, conforme os decoders incluídos no seu FFmpeg.</dd>
+        </div>
+        <div>
+          <dt>Posso manter o áudio original?</dt><dd>Use Copy se o container aceitar o codec. Se houver incompatibilidade, selecione AAC a 192 ou 320 kbps.</dd>
+        </div>
+        <div>
+          <dt>O que acontece se eu cancelar?</dt><dd>A fila remove os temporários da conversão interrompida e conserva os arquivos já publicados.</dd>
+        </div>
+        <div>
+          <dt>Meus arquivos saem da máquina?</dt><dd>A aplicação trabalha localmente. A demo do navegador usa arquivos de exemplo e simula o processamento.</dd>
+        </div>
+      </dl>
+    </section>
   </main>
 
-  <dialog id="instalacao" aria-labelledby="install-title">
-    <form method="dialog">
-      <button class="button secondary icon-button" aria-label="Fechar">
-        <svg class="icon" aria-hidden="true"><use href="#i-close"/></svg>
-      </button>
-    </form>
-    <h2 id="install-title">Instalação no Fedora</h2>
-    <p>O Velox está em prévia visual. Os pacotes e o script de instalação serão disponibilizados após a validação dos builds.</p>
-    <form method="dialog"><button class="button primary" autofocus>Voltar ao protótipo</button></form>
-  </dialog>
+  <footer class="site-footer container">
+    <nav class="footer-links" aria-label="Links do rodapé">
+      <div><h2>Produto</h2><a href="#recursos">Recursos</a><a href="#demonstracao">Demonstração</a><a href="#faq">FAQ</a></div>
+      <div><h2>Instalação</h2><a href="#fedora">Fedora</a><a href="#flatpak">Flatpak</a><a href="#arch">Arch Linux</a></div>
+      <div><h2>Tecnologia</h2><a href="https://ffmpeg.org/documentation.html">FFmpeg</a><a href="https://slint.dev/">Slint</a><a href="https://www.rust-lang.org/">Rust</a></div>
+    </nav>
+    <p class="footer-wordmark"><span>Velox</span> <span>Transcode</span></p>
+    <div class="footer-bottom">
+      <p>© 2026 Velox Transcode</p>
+      <nav class="social-links" aria-label="Comunidades">
+        <a href="https://discussion.fedoraproject.org/">Fedora Discussion <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+        <a href="https://ffmpeg.org/community.html">Comunidade FFmpeg <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+      </nav>
+      <p>Aplicação nativa em Rust e Slint, com FFmpeg e ffprobe.</p>
+    </div>
+  </footer>
 </body>
 </html>

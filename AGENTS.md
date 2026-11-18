@@ -2,7 +2,7 @@
 
 ## Estado e entrada
 
-A Fase 1 entregou a estrutura de trabalho, o brand kit e a prévia do primeiro ecrã. A implementação foi autorizada para os cards 1, 2 e 3. Consulte o plano para acompanhar o estado dos cinco cards.
+A Fase 1 entregou a estrutura de trabalho, o brand kit e a prévia do primeiro ecrã. A implementação foi autorizada para os cards 1 a 4. Consulte o plano para acompanhar o estado dos cinco cards.
 
 Leia [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), [docs/architecture.md](docs/architecture.md) e os critérios do card em [docs/development-plan.md](docs/development-plan.md). Use o card como unidade de entrega.
 
