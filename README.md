@@ -1,6 +1,6 @@
 # Velox Transcode
 
-Transcodificador nativo de vídeo em lote para Fedora. Este repositório reúne o aplicativo Rust e a página do produto.
+Transcodificador nativo de vídeo em lote para Fedora e macOS. Este repositório reúne o aplicativo Rust e a página do produto.
 
 ## Instalação no Fedora Workstation
 
@@ -12,6 +12,18 @@ Instale as dependências de compilação e execute os comandos na raiz do projet
 ```
 
 O aplicativo também aparece no menu do sistema e recebe caminhos de vídeos como argumentos. Adicione os vídeos, escolha uma pasta de destino e inicie a fila. Para desenvolvimento, use `cargo run --locked`. Os procedimentos para RPM, Flatpak, tarball e Silverblue estão na [documentação da distribuição](docs/card-5-distribuicao.md).
+
+## Instalação no macOS
+
+Em um Mac, instale o Rust com Cargo e as ferramentas de linha de comando da Apple com `xcode-select --install`. Use os comandos abaixo na raiz do repositório.
+
+```sh
+brew install qtbase ffmpeg
+./install.sh
+open "$HOME/Applications/Velox Transcode.app"
+```
+
+O Finder permite abrir MP4, MOV, MKV e WebM pelo menu **Abrir com**. Com o Velox aberto, use **Opções → Manter no Dock** no ícone do aplicativo. O FFmpeg continua instalado pelo Homebrew e é localizado mesmo quando o Velox é iniciado pelo Finder. [Detalhes da instalação e estado das verificações](docs/card-9-instalacao.md)
 
 ## Saída para edição em ProRes
 
@@ -40,4 +52,5 @@ Na prévia local, selecione um vídeo de exemplo para inspecionar os metadados, 
 | [Landing page](docs/card-4-landing.md) | Mockups, verificação responsiva e canais de instalação |
 | [Distribuição](docs/card-5-distribuicao.md) | Instalação, geração de pacotes, checksums e matriz de validação |
 | [Apple ProRes](docs/card-7-prores.md) | Saída para edição, perfis e resultados do card 7 |
+| [Instalação no Fedora e macOS](docs/card-9-instalacao.md) | Atalho, bundle, ícones e matriz de verificação |
 | [Plano de desenvolvimento](docs/development-plan.md) | Cards, dependências, entregas e critérios de aceite |

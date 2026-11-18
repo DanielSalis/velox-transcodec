@@ -6,7 +6,7 @@
 
 web
 
-A página pública apresenta o Velox Transcode. A aplicação é nativa para Linux, com Fedora Workstation e Silverblue como ambientes-alvo.
+A página pública apresenta o Velox Transcode. A aplicação é nativa para Fedora Workstation, Silverblue e macOS. O card 9 acompanha a validação da instalação no macOS.
 
 ## Stack
 

@@ -10,6 +10,7 @@ fn main() {
 fn build_qt_resize() {
     println!("cargo:rustc-check-cfg=cfg(velox_qt_resize)");
     println!("cargo:rerun-if-changed=src/desktop/window_resize.cpp");
+    println!("cargo:rerun-if-changed=src/desktop/macos.cpp");
     println!("cargo:rerun-if-env-changed=SLINT_NO_QT");
     if std::env::var_os("SLINT_NO_QT").is_some()
         || std::env::var("DEP_QT_FOUND").as_deref() != Ok("1")
@@ -31,6 +32,11 @@ fn build_qt_resize() {
         .split_terminator(';')
     {
         build.flag(flag);
+    }
+    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
+        let qt_libraries = std::env::var("DEP_QT_LIBRARY_PATH").expect("bibliotecas Qt");
+        println!("cargo:rustc-link-arg-bin=velox-transcode=-Wl,-rpath,{qt_libraries}");
+        build.file("src/desktop/macos.cpp");
     }
     build.compile("velox_qt_resize");
     println!("cargo:rustc-cfg=velox_qt_resize");

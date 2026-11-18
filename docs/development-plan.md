@@ -4,6 +4,8 @@
 
 **Cards 6 a 8 implementados.** A barra própria foi validada em Wayland e X11, a saída ProRes foi verificada no Fedora e no Flatpak e o painel H.264 ganhou rótulos e ajuda de contexto. [Card 6](card-6-barra-de-titulo.md) · [Card 7](card-7-prores.md) · [Card 8](card-8-ajustes.md)
 
+**Card 9 implementado.** O instalador gera o atalho no Fedora e o bundle de usuário no macOS. A matriz registra o aceite no Fedora Workstation e as verificações nativas pendentes no macOS e no Silverblue. [Card 9](card-9-instalacao.md)
+
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
 ## Card 1 — Fundação Rust e prova de desktop no Fedora
@@ -75,3 +77,19 @@
 **Aceite.** Conferir as três variantes de encoder, incluindo VA-API em Automático, e a troca entre H.264 e ProRes. Verificar contraste, legibilidade e ausência de truncamento na janela mínima de 880×640 px lógicos a 100% e 150%. Testar a barra, os seletores e a ajuda com mouse e teclado, incluindo foco visível, fechar com Esc e devolver o foco à ação de ajuda. Confirmar que os valores enviados à fila correspondem aos selecionados e entregar uma captura para revisão visual.
 
 **Entrega.** A barra mostra os efeitos de 18 e 28. Os seletores exibem o efeito de velocidade e a compatibilidade do perfil. A ajuda abre dentro da janela e pode ser reaberta pelo teclado depois de Esc. [Verificação e capturas](card-8-ajustes.md)
+
+## Card 9 — Instalação no Fedora e macOS com integração ao desktop
+
+**Objetivo.** Instalar o Velox na conta do usuário a partir de `./install.sh`, abrir pelo menu de aplicativos ou Finder e identificar facilmente a janela em execução na barra de tarefas ou Dock.
+
+**Instalador.** Detectar o sistema, verificar dependências e reaproveitar a instalação release com `cargo build --release --locked` ou com o binário do pacote. Preparar os arquivos antes de substituir a instalação existente. Testar reinstalação e apresentar mensagens que indiquem como resolver dependências ausentes.
+
+**Fedora.** Reaproveitar o instalador de usuário para `~/.local` e documentar o caminho Flatpak no Silverblue. Instalar o desktop entry `dev.veloxtranscode.Velox.desktop` com `Exec` para vários arquivos, tipos MIME e `Icon=dev.veloxtranscode.Velox`. Instalar o SVG e os PNG no tema `hicolor` e atualizar o cache de tipos de arquivo. Associar a janela pelo app ID `dev.veloxtranscode.Velox` em Wayland e pela classe medida `velox-transcode` em X11. [Modelo do desktop entry](../packaging/dev.veloxtranscode.Velox.desktop) · [Especificação freedesktop](https://specifications.freedesktop.org/desktop-entry/latest-single/) · [Tema de ícones](https://specifications.freedesktop.org/icon-theme/)
+
+**macOS.** Provar a compilação e adaptar a integração com o sistema, incluindo seletor de arquivos, abertura pelo Finder, controles de janela e notificação ao concluir. Instalar `~/Applications/Velox Transcode.app` com o executável nativo, as bibliotecas e plugins Qt necessários e `Contents/Info.plist` com nome, versão, `CFBundleIdentifier=dev.veloxtranscode.Velox`, tipos de documento e `CFBundleIconFile=Velox.icns`. Abrir como aplicativo gráfico regular para exibir o ícone no Dock. Garantir que a janela aberta pelo Finder encontre FFmpeg e ffprobe sem depender do PATH do terminal. Validar primeiro em Apple Silicon e registrar as arquiteturas verificadas. [Estrutura do bundle](https://developer.apple.com/documentation/bundleresources/placing-content-in-a-bundle) · [Implantação do Qt](https://doc.qt.io/qt-6/macos-deployment.html)
+
+**Ícones prontos.** O SVG da marca é a origem das versões PNG Fedora em 16, 24, 32, 48, 64, 128 e 256 px. O conjunto macOS inclui `Velox.icns` e o `.iconset` com versões normais e Retina de 16 a 512 pt. A versão macOS tem margem transparente para o símbolo respirar no Dock. [PNG para Fedora](../packaging/icons/fedora/hicolor/) · [Ícone macOS](../packaging/icons/macos/Velox.icns) · [Tamanhos de ícone macOS](https://developer.apple.com/library/archive/documentation/General/Conceptual/MOSXAppProgrammingGuide/CommonAppBehaviors/CommonAppBehaviors.html)
+
+**Aceite.** Instalar como usuário comum e repetir a instalação em Fedora e macOS. Validar os registros com `desktop-file-validate` e `plutil`, confirmar a resolução dos ícones e abrir o app pelo GNOME/KDE e pelo Finder. Abrir um vídeo pelo menu **Abrir com** e concluir um lote a partir desse ponto. Confirmar um único ícone por aplicativo ao abrir, minimizar e restaurar a janela. Verificar a legibilidade do ícone em tamanho pequeno, em fundos claro e escuro, e conferir que é possível fixá-lo e reabrir o Velox pelo Dock ou pela barra de tarefas.
+
+**Evidências.** [Instalação, integração com o desktop e matriz de verificação](card-9-instalacao.md)

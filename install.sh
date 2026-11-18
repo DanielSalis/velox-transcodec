@@ -2,7 +2,12 @@
 set -euo pipefail
 
 project=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
-prefix="$HOME/.local"
+system=$(uname -s)
+case "$system" in
+    Linux) prefix="$HOME/.local" ;;
+    Darwin) prefix="$HOME/Applications" ;;
+    *) prefix= ;;
+esac
 binary=
 
 fail() {
@@ -23,11 +28,21 @@ while (( $# > 0 )); do
             ;;
         -h|--help)
             printf 'Uso: %s [--prefix DIRETÓRIO] [--binary BINÁRIO]\n' "$0"
+            printf 'Destino padrão no Fedora: ~/.local. No macOS: ~/Applications.\n'
             exit 0
             ;;
         *) fail "Opção desconhecida: $1." ;;
     esac
 done
+
+case "$system" in
+    Darwin)
+        [[ -f "$project/packaging/install-macos.sh" ]] || fail "Use o repositório completo para instalar no macOS."
+        exec bash "$project/packaging/install-macos.sh" "$prefix" "$binary"
+        ;;
+    Linux) ;;
+    *) fail "Sistema sem instalador: $system." ;;
+esac
 
 for command in ffmpeg ffprobe desktop-file-validate update-desktop-database ldd ldconfig; do
     command -v "$command" >/dev/null || fail "Dependência ausente: $command. Consulte o README para as dependências."
@@ -69,6 +84,21 @@ fi
 
 mkdir -p -- "$prefix"
 prefix=$(cd -- "$prefix" && pwd -P)
-"$project/packaging/stage.sh" "$binary" "$prefix" "$prefix/bin/velox-transcode"
+staging=$(mktemp -d "$prefix/.velox-install.XXXXXX")
+trap 'rm -rf -- "$staging"' EXIT
+"$project/packaging/stage.sh" "$binary" "$staging" "$prefix/bin/velox-transcode"
+mapfile -d '' files < <(find "$staging" -type f -print0)
+for file in "${files[@]}"; do
+    destination="$prefix/${file#"$staging"/}"
+    mkdir -p -- "${destination%/*}"
+    [[ ! -d "$destination" ]] || fail "O destino é um diretório: $destination."
+done
+for file in "${files[@]}"; do
+    mv -fT -- "$file" "$prefix/${file#"$staging"/}"
+done
 update-desktop-database "$prefix/share/applications"
+if command -v gtk-update-icon-cache >/dev/null; then
+    gtk-update-icon-cache -f -t "$prefix/share/icons/hicolor" ||
+        printf 'Velox: os ícones foram instalados, mas o cache GTK não pôde ser atualizado.\n' >&2
+fi
 printf 'Velox instalado em %s/bin/velox-transcode\n' "$prefix"

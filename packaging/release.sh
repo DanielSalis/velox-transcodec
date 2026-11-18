@@ -50,6 +50,8 @@ if [[ "$mode" != flatpak ]]; then
     install -Dm755 -- "$project/packaging/stage.sh" "$portable/packaging/stage.sh"
     install -Dm644 -- "$project/packaging/dev.veloxtranscode.Velox.desktop" "$portable/packaging/dev.veloxtranscode.Velox.desktop"
     install -Dm644 -- "$project/web/assets/velox-transcode.svg" "$portable/web/assets/velox-transcode.svg"
+    mkdir -p -- "$portable/packaging/icons"
+    cp -a -- "$project/packaging/icons/fedora" "$portable/packaging/icons/"
     for name in host-grotesk instrument-sans; do
         install -Dm644 -- "$project/web/assets/fonts/$name-OFL.txt" "$portable/web/assets/fonts/$name-OFL.txt"
     done

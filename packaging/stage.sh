@@ -34,6 +34,10 @@ desktop-file-validate "$desktop"
 
 install -Dm755 -- "$binary" "$destination/bin/velox-transcode"
 install -Dm644 -- "$project/web/assets/velox-transcode.svg" "$destination/share/icons/hicolor/scalable/apps/$app_id.svg"
+for size in 16 24 32 48 64 128 256; do
+    icon="${size}x${size}/apps/$app_id.png"
+    install -Dm644 -- "$project/packaging/icons/fedora/hicolor/$icon" "$destination/share/icons/hicolor/$icon"
+done
 for name in host-grotesk instrument-sans; do
     install -Dm644 -- "$project/web/assets/fonts/$name-OFL.txt" "$destination/share/licenses/velox-transcode/$name-OFL.txt"
 done

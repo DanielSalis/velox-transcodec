@@ -1,14 +1,20 @@
 mod intake;
+#[cfg(target_os = "macos")]
+mod macos;
 mod view;
 #[cfg(velox_qt_resize)]
 mod window_resize;
 
 use std::{cell::RefCell, path::PathBuf, rc::Rc, time::Duration};
 
-use notify_rust::{Hint, Notification};
+#[cfg(target_os = "linux")]
+use notify_rust::Hint;
+use notify_rust::Notification;
 use slint::{CloseRequestResponse, ComponentHandle, Weak};
 use tokio::runtime::Handle;
-use velox_transcode::{APP_ID, domain::BatchSummary, media::MediaEngine, queue};
+#[cfg(target_os = "linux")]
+use velox_transcode::{APP_ID, media::MediaEngine};
+use velox_transcode::{domain::BatchSummary, queue};
 
 use crate::DesktopWindow;
 use view::Desktop;
@@ -17,7 +23,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     slint::BackendSelector::new()
         .backend_name("qt".into())
         .select()?;
+    #[cfg(target_os = "linux")]
     slint::set_xdg_app_id(APP_ID)?;
+    #[cfg(target_os = "linux")]
+    let media = MediaEngine::default();
+    #[cfg(target_os = "macos")]
+    let media = macos::media_engine()?;
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
@@ -28,7 +39,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         mut events,
     } = {
         let _guard = runtime.enter();
-        queue::spawn(MediaEngine::default())
+        queue::spawn(media)
     };
 
     let window = DesktopWindow::new()?;
@@ -36,6 +47,21 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     wire_callbacks(&window, &state, &worker);
     #[cfg(velox_qt_resize)]
     window_resize::wire(&window);
+    #[cfg(all(target_os = "macos", velox_qt_resize))]
+    let _file_open = {
+        let (window, state) = refs(&window, &state);
+        macos::FileOpen::new(move |path| {
+            let window = window.clone();
+            let state = state.clone();
+            if let Err(error) = slint::spawn_local(async move {
+                if let Some(window) = window.upgrade() {
+                    state.borrow().add_files(&window, vec![path]);
+                }
+            }) {
+                eprintln!("Falha ao abrir arquivo do Finder: {error}");
+            }
+        })
+    };
 
     let weak = window.as_weak();
     let ui_state = state.clone();
@@ -201,13 +227,25 @@ fn pick(
 
 fn notify_finished(worker: &Handle, summary: BatchSummary) {
     worker.spawn(async move {
+        #[cfg(target_os = "macos")]
+        match notify_rust::request_auth().await {
+            Ok(true) => (),
+            Ok(false) => return,
+            Err(error) => {
+                eprintln!("Notificações do Velox indisponíveis: {error}");
+                return;
+            }
+        }
+
         let mut notification = Notification::new();
         notification
             .appname("Velox Transcode")
-            .icon(APP_ID)
-            .hint(Hint::DesktopEntry(APP_ID.into()))
             .summary("Fila de conversão finalizada")
             .body(&view::batch_summary(summary));
+        #[cfg(target_os = "linux")]
+        notification
+            .icon(APP_ID)
+            .hint(Hint::DesktopEntry(APP_ID.into()));
         match tokio::time::timeout(Duration::from_secs(3), notification.show_async()).await {
             Ok(Ok(_)) => (),
             Ok(Err(error)) => eprintln!("Notificação do Velox indisponível: {error}"),

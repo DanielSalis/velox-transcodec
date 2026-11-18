@@ -25,4 +25,5 @@ cp -a usr "%{buildroot}/"
 %{_bindir}/velox-transcode
 %{_datadir}/applications/dev.veloxtranscode.Velox.desktop
 %{_datadir}/icons/hicolor/scalable/apps/dev.veloxtranscode.Velox.svg
+%{_datadir}/icons/hicolor/*/apps/dev.veloxtranscode.Velox.png
 %license %{_licensedir}/velox-transcode/
