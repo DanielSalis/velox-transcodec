@@ -1,6 +1,6 @@
 # Plano de desenvolvimento em cinco cards
 
-**Card 1 implementado e verificado. Cards 2–5 aguardam início.** O protótipo da Fase 1 serve de referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
+**Cards 1 a 3 implementados e verificados. Cards 4 e 5 aguardam início.** O protótipo da Fase 1 serve de referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
 
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
@@ -14,13 +14,13 @@
 
 **Depende do card 1.** Implementar probe enriquecido, descoberta e teste real de VA-API/NVENC/x264, mapeamentos de qualidade/perfil/preset/áudio/container e execução paralela limitada com cancelamento e erros por item. Entregar progresso por item e global, FPS, ETA e redução final com saídas protegidas contra colisões. Expor comandos e eventos ao card 3.
 
-**Aceite.** Executar transcodes reais usando fixtures sintéticas com ffprobe de saída, incluindo MP4/MKV/MOV, Copy compatível e AAC 192/320, cancelamento e erro. Exercitar metadados ausentes, arquivo inválido, caminhos com espaços, colisão em execução concorrente e falha de encoder. Registrar quais GPUs foram exercitadas, testar a filtragem de hardware indisponível e medir FPS, tempo total e memória em uma amostra reproduzível.
+**Aceite.** Executar transcodes reais usando fixtures sintéticas com ffprobe de saída, incluindo MP4/MKV/MOV, Copy compatível e AAC 192/320, cancelamento e erro. Exercitar metadados ausentes, arquivo inválido, caminhos com espaços, colisão em execução concorrente e falha de encoder. Registrar quais GPUs foram exercitadas, testar a filtragem de hardware indisponível e medir FPS, tempo total e memória em uma amostra reproduzível. [Evidências e integração](card-2-media.md).
 
 ## Card 3 — Interface nativa, controles e notificação
 
 **Depende dos cards 1 e 2 para integração.** Implementar em Slint a janela aprovada, tipografia e tokens, entrada múltipla por drag & drop, seletor portal e arquivos abertos via .desktop. Conectar tabela de metadados, seleção de destino, encoder e opções suportadas, progresso por item e global, cancelamento, conclusão e notificação via D-Bus.
 
-**Aceite.** Verificar seleção de vários arquivos, edição por teclado, estados vazio/erro/execução/conclusão e compatibilidade por encoder. Completar um lote real em Fedora sem bloquear a interface. Verificar notificação e continuidade da UI quando o serviço D-Bus não estiver disponível. Entregar gravação ou capturas e resultados de Wayland e X11.
+**Aceite.** Verificar seleção de vários arquivos, edição por teclado, estados vazio/erro/execução/conclusão e compatibilidade por encoder. Completar um lote real em Fedora sem bloquear a interface. Verificar notificação e continuidade da UI quando o serviço D-Bus não estiver disponível. Entregar gravação ou capturas e resultados de Wayland e X11. [Evidências do desktop](card-3-desktop.md).
 
 ## Card 4 — Landing page responsiva e mockups
 

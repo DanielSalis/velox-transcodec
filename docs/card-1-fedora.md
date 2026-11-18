@@ -1,6 +1,6 @@
 # Card 1 — Fundação Rust no Fedora
 
-A janela de prova aceita caminhos de uma transferência nativa, do seletor múltiplo ou da linha de comando. Ela lista os caminhos recebidos para conferir a entrada. Probe, fila e interface de conversão pertencem aos cards 2 e 3.
+A janela de prova aceitava caminhos de uma transferência nativa, do seletor múltiplo ou da linha de comando. Ela listava os caminhos recebidos para conferir a entrada. A interface atual está documentada no [card 3](card-3-desktop.md).
 
 ## Compilar e executar
 
@@ -36,4 +36,4 @@ O teste de arraste usou uma origem GTK controlada. A matriz com Nautilus em GNOM
 ## Entrega aos cards 2 e 3
 
 - **Motor.** Implemente probe, detecção e fila usando [os contratos Rust](../src/domain/mod.rs). Os eventos têm `MediaId` e `BatchId` para correlação. Preserve a escala de progresso de 0 a 100 e envie o tamanho final só em `JobOutput`.
-- **Desktop.** Conserve o ID em [src/lib.rs](../src/lib.rs) e o caminho comum de entrada do [binário](../src/main.rs). Troque o coletor de caminhos do teste pelo canal da fila. Reaproveite a recepção por `DropArea` e o seletor assíncrono ao substituir o layout temporário pela janela do produto.
+- **Desktop.** O card 3 conservou o ID em [src/lib.rs](../src/lib.rs) e integrou a recepção por `DropArea` e o seletor assíncrono à fila.

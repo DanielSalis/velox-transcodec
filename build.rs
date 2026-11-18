@@ -2,6 +2,6 @@ fn main() {
     let config = slint_build::CompilerConfiguration::new()
         .with_style("fluent-dark".into())
         .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);
-    slint_build::compile_with_config("ui/intake.slint", config)
-        .expect("compilar janela de entrada");
+    slint_build::compile_with_config("ui/desktop.slint", config)
+        .expect("compilar interface do Velox");
 }

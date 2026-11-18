@@ -1,0 +1,441 @@
+import { ListView } from "std-widgets.slint";
+import { Theme, Label, Heading, Rule, Action, Choice, Range, Meter } from "controls.slint";
+import "fonts/host-grotesk.ttf";
+import "fonts/instrument-sans.ttf";
+
+export struct FileRowView {
+    name: string,
+    codec: string,
+    resolution: string,
+    duration: string,
+    state: string,
+    progress: float,
+    show-progress: bool,
+    included: bool,
+}
+
+component FileCells inherits HorizontalLayout {
+    in property <string> file-name;
+    in property <string> codec;
+    in property <string> resolution;
+    in property <string> duration;
+    in property <color> ink: Theme.secondary;
+    in property <int> size: 13;
+    padding-left: 12px;
+    padding-right: 12px;
+    spacing: 8px;
+    Label { min-width: 0px; horizontal-stretch: 1; font-size: root.size * 1px; color: root.ink; text: root.file-name; }
+    Label { width: 72px; font-size: root.size * 1px; color: root.ink; text: root.codec; }
+    Label { width: 96px; font-size: root.size * 1px; color: root.ink; text: root.resolution; }
+    Label { width: 61px; font-size: root.size * 1px; color: root.ink; text: root.duration; }
+}
+
+component FileRow inherits Rectangle {
+    in property <FileRowView> file-view;
+    in property <bool> selected;
+    callback inspected();
+
+    height: 63px;
+    background: root.selected || touch.has-hover ? Theme.surface : Theme.ground;
+    border-width: keys.has-focus ? 1px : 0px;
+    border-color: Theme.accent;
+    forward-focus: keys;
+    accessible-role: button;
+    accessible-label: root.file-view.name + ", " + root.file-view.state;
+    accessible-action-default => { root.inspected(); }
+
+    if root.selected: Rectangle { x: 0; width: 1px; height: parent.height; background: Theme.accent; }
+    Rectangle { y: parent.height - 1px; height: 1px; background: Theme.separator; }
+
+    VerticalLayout {
+        padding-top: 5px;
+        padding-bottom: 7px;
+        spacing: 2px;
+        FileCells {
+            file-name: root.file-view.name;
+            codec: root.file-view.codec;
+            resolution: root.file-view.resolution;
+            duration: root.file-view.duration;
+        }
+        Label {
+            x: 12px;
+            width: parent.width - 24px;
+            font-size: 12px;
+            color: root.file-view.show-progress ? Theme.accent : Theme.muted;
+            text: root.file-view.state + (root.file-view.included ? "" : " · fora da fila");
+        }
+        if root.file-view.show-progress: Rectangle {
+            height: 3px;
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                Meter { fraction: root.file-view.progress; height: 3px; }
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { keys.focus(); root.inspected(); }
+    }
+    keys := FocusScope {
+        x: 0;
+        width: 0px;
+        key-pressed(event) => {
+            if event.text == Key.Space || event.text == Key.Return {
+                root.inspected();
+                return accept;
+            }
+            return reject;
+        }
+    }
+}
+
+component Detail inherits VerticalLayout {
+    in property <string> label;
+    in property <string> value;
+    spacing: 2px;
+    Label { text: root.label; font-size: 12px; color: Theme.muted; }
+    Label { text: root.value; font-size: 14px; min-width: 0px; }
+}
+
+component ChoiceField inherits VerticalLayout {
+    in property <string> label;
+    in property <[string]> options;
+    in property <bool> enabled: true;
+    in-out property <int> current-index;
+    callback changed-index(int);
+
+    spacing: 4px;
+    Label { text: root.label; color: Theme.muted; font-size: 12px; }
+    Choice {
+        label: root.label;
+        options: root.options;
+        enabled: root.enabled && root.options.length > 0;
+        current-index <=> root.current-index;
+        changed-index(index) => { root.changed-index(index); }
+    }
+}
+
+export component DesktopWindow inherits Window {
+    title: "Velox Transcode";
+    icon: @image-url("../web/assets/velox-transcode.svg");
+    default-font-family: "Instrument Sans";
+    default-font-size: 16px;
+    min-width: 880px;
+    min-height: 640px;
+    preferred-width: 1000px;
+    preferred-height: 680px;
+    background: Theme.ground;
+
+    in property <[FileRowView]> files;
+    in property <int> selected-file: -1;
+    in property <string> detail-fps: "—";
+    in property <string> detail-bitrate: "—";
+    in property <string> detail-size: "—";
+    in property <string> detail-message;
+    in property <bool> detail-recover-audio;
+    in property <bool> detail-can-toggle;
+    in property <bool> detail-included;
+    in property <bool> picking;
+    in property <bool> busy;
+    in property <bool> queue-action-enabled;
+    in property <string> queue-action: "Iniciar fila";
+    in property <string> queue-status: "Adicione arquivos para começar.";
+    in property <int> queue-percent;
+    in property <float> queue-fraction;
+    in property <string> queue-message;
+    in property <bool> detecting: true;
+    in property <string> encoder-message;
+    in property <[string]> encoders;
+    in property <[string]> presets;
+    in property <[string]> profiles;
+    in property <string> quality-label: "Qualidade";
+    in property <string> destination;
+    in-out property <int> encoder-index;
+    in-out property <int> preset-index;
+    in-out property <int> profile-index;
+    in-out property <int> quality: 22;
+    in-out property <int> audio-index;
+    in-out property <int> container-index;
+
+    callback pick-files();
+    callback pick-destination();
+    callback inspect(int);
+    callback toggle-inclusion();
+    callback encoder-changed(int);
+    callback recover-audio();
+    callback toggle-queue();
+    callback detect-encoders();
+    pure callback has-files(data-transfer) -> bool;
+    callback receive-files(data-transfer) -> bool;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 0;
+
+        Rectangle {
+            height: 53px;
+            border-top-left-radius: Theme.radius;
+            border-top-right-radius: Theme.radius;
+            border-width: 1px;
+            border-color: Theme.separator;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding-left: 18px;
+                padding-right: 18px;
+                spacing: 10px;
+                Rectangle {
+                    width: 26px;
+                    Image {
+                        y: (parent.height - self.height) / 2;
+                        source: @image-url("../web/assets/velox-transcode.svg");
+                        width: 26px;
+                        height: 26px;
+                    }
+                }
+                Heading { text: "Velox Transcode"; horizontal-stretch: 1; }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 0;
+            vertical-stretch: 1;
+
+            Rectangle {
+                horizontal-stretch: 1;
+                min-width: 480px;
+                border-width: 1px;
+                border-color: Theme.separator;
+                background: Theme.ground;
+
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 9px;
+
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Heading { text: "Arquivos"; }
+                        Label { text: "\{root.files.length}"; color: Theme.accent; horizontal-stretch: 1; }
+                        Action {
+                            label: "Adicionar arquivos";
+                            enabled: !root.picking && !root.busy;
+                            clicked => { root.pick-files(); }
+                        }
+                    }
+
+                    Rectangle {
+                        height: root.files.length == 0 ? 68px : 42px;
+                        background: Theme.surface;
+                        border-radius: Theme.radius;
+                        border-color: drop.current-action == DragAction.copy ? Theme.accent : Theme.control-border;
+                        border-width: 1px;
+                        Label {
+                            text: root.picking ? "Aguardando o seletor do sistema…" : "Arraste vídeos para cá";
+                            color: drop.current-action == DragAction.copy ? Theme.accent : Theme.secondary;
+                            horizontal-alignment: center;
+                        }
+                        drop := DropArea {
+                            can-drop(event) => {
+                                !root.busy && root.has-files(event.data) ? DragAction.copy : DragAction.none
+                            }
+                            dropped(event) => {
+                                !root.busy && root.receive-files(event.data) ? DragAction.copy : DragAction.none
+                            }
+                        }
+                    }
+
+                    FileCells {
+                        height: 22px;
+                        file-name: "Arquivo";
+                        codec: "Codec";
+                        resolution: "Resolução";
+                        duration: "Duração";
+                        size: 12;
+                        ink: Theme.muted;
+                    }
+
+                    Rule {}
+                    Rectangle {
+                        vertical-stretch: 1;
+                        if root.files.length == 0: Label {
+                            text: "Os metadados dos vídeos aparecem aqui.";
+                            color: Theme.muted;
+                            horizontal-alignment: center;
+                        }
+                        ListView {
+                            for row[index] in root.files: FileRow {
+                                file-view: row;
+                                selected: index == root.selected-file;
+                                inspected => { root.inspect(index); }
+                            }
+                        }
+                    }
+                    Rule {}
+
+                    HorizontalLayout {
+                        spacing: 12px;
+                        Detail { label: "FPS"; value: root.detail-fps; horizontal-stretch: 1; }
+                        Detail { label: "Bitrate"; value: root.detail-bitrate; horizontal-stretch: 1; }
+                        Detail { label: "Tamanho"; value: root.detail-size; horizontal-stretch: 1; }
+                        if root.selected-file >= 0: Action {
+                            label: root.detail-included ? "Excluir da fila" : "Incluir na fila";
+                            enabled: root.detail-can-toggle && !root.busy;
+                            clicked => { root.toggle-inclusion(); }
+                        }
+                    }
+
+                    if root.detail-message != "": HorizontalLayout {
+                        spacing: 9px;
+                        Label {
+                            text: root.detail-message;
+                            min-width: 0px;
+                            wrap: word-wrap;
+                            font-size: 12px;
+                            color: Theme.muted;
+                            horizontal-stretch: 1;
+                            min-height: 32px;
+                            max-height: 58px;
+                        }
+                        if root.detail-recover-audio: Action {
+                            label: "Usar AAC 192 kbps";
+                            enabled: !root.busy;
+                            clicked => { root.recover-audio(); }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                min-width: 338px;
+                preferred-width: 350px;
+                horizontal-stretch: 0;
+                border-width: 1px;
+                border-color: Theme.separator;
+                background: Theme.surface;
+                VerticalLayout {
+                    padding: 17px;
+                    spacing: 9px;
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+                        Heading { text: "Saída"; }
+                        Label { text: "H.264"; color: Theme.accent; horizontal-stretch: 1; }
+                    }
+
+                    ChoiceField {
+                        label: "Encoder";
+                        options: root.encoders;
+                        enabled: !root.busy && !root.detecting;
+                        current-index <=> root.encoder-index;
+                        changed-index(index) => { root.encoder-changed(index); }
+                    }
+                    if root.detecting: Label { text: "Verificando os encoders…"; color: Theme.muted; font-size: 12px; }
+                    if root.encoder-message != "" && !root.detecting: VerticalLayout {
+                        spacing: 6px;
+                        Label { text: root.encoder-message; color: Theme.muted; wrap: word-wrap; font-size: 12px; min-width: 0px; }
+                        Action { label: "Verificar encoders"; enabled: !root.busy; clicked => { root.detect-encoders(); } }
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        vertical-stretch: 0;
+                        HorizontalLayout {
+                            Label { text: root.quality-label; color: Theme.muted; font-size: 12px; horizontal-stretch: 1; }
+                            Label { text: "\{root.quality}"; color: Theme.accent; font-size: 13px; }
+                        }
+                        Range {
+                            label: root.quality-label;
+                            enabled: !root.busy && !root.detecting && root.encoders.length > 0;
+                            value <=> root.quality;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 9px;
+                        ChoiceField {
+                            label: "Preset"; options: root.presets;
+                            enabled: !root.busy && !root.detecting && root.presets.length > 1;
+                            current-index <=> root.preset-index;
+                        }
+                        ChoiceField {
+                            label: "Perfil"; options: root.profiles;
+                            enabled: !root.busy && !root.detecting;
+                            current-index <=> root.profile-index;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 9px;
+                        ChoiceField {
+                            label: "Áudio"; options: ["Copy", "AAC 192 kbps", "AAC 320 kbps"];
+                            enabled: !root.busy;
+                            current-index <=> root.audio-index;
+                        }
+                        ChoiceField {
+                            label: "Container"; options: ["MP4", "MKV", "MOV"];
+                            enabled: !root.busy;
+                            current-index <=> root.container-index;
+                        }
+                    }
+
+                    Rectangle { vertical-stretch: 1; }
+                    Rule {}
+                    Label { text: "Pasta de destino"; color: Theme.muted; font-size: 12px; }
+                    Label {
+                        text: root.destination == "" ? "Selecione onde salvar os vídeos." : root.destination;
+                        min-width: 0px;
+                    }
+                    Action {
+                        label: "Escolher pasta";
+                        enabled: !root.picking && !root.busy;
+                        clicked => { root.pick-destination(); }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            min-height: 88px;
+            border-bottom-left-radius: Theme.radius;
+            border-bottom-right-radius: Theme.radius;
+            border-width: 1px;
+            border-color: Theme.separator;
+            background: Theme.surface;
+
+            HorizontalLayout {
+                padding: 16px;
+                spacing: 16px;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 4px;
+                    HorizontalLayout {
+                        Heading { text: "Fila de conversão"; font-size: 16px; horizontal-stretch: 1; }
+                        Label { text: "\{root.queue-percent}%"; color: Theme.accent; font-size: 13px; }
+                    }
+                    Meter { label: "Progresso da fila"; fraction: root.queue-fraction; height: 4px; }
+                    Label {
+                        min-width: 0px;
+                        font-size: 13px;
+                        text: root.queue-message == "" ? root.queue-status : root.queue-message;
+                        color: Theme.muted;
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    horizontal-stretch: 0;
+                    Action {
+                        label: root.queue-action;
+                        height: 40px;
+                        enabled: root.queue-action-enabled && (root.busy || !root.picking);
+                        primary: !root.busy;
+                        clicked => { root.toggle-queue(); }
+                    }
+                }
+            }
+        }
+    }
+}

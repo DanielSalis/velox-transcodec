@@ -84,6 +84,7 @@ pub enum JobFailureKind {
     InputUnavailable,
     InvalidMedia,
     EncoderUnavailable,
+    AudioCopyIncompatible,
     TranscodeFailed,
     OutputUnavailable,
 }
