@@ -1,14 +1,14 @@
 # Plano de desenvolvimento em cinco cards
 
-**Fase 1 pronta para revisão. Cards aguardam aprovação.** O protótipo aprovado será a referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
+**Card 1 implementado e verificado. Cards 2–5 aguardam início.** O protótipo da Fase 1 serve de referência de composição. Cada card tem um agente responsável e entrega código, verificações executadas e pendências com ambiente identificado.
 
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
 ## Card 1 — Fundação Rust e prova de desktop no Fedora
 
-**Entrega.** Criar manifesto Cargo, perfil release, lockfile, esqueleto compilável e tipos de domínio da arquitetura. Fixar versões verificadas de Slint/Winit/Tokio. Provar abertura de janela com identificação do app, arraste externo de múltiplos arquivos e seletor portal. Registrar requisitos Wayland/XKB e diferenças entre Workstation e Silverblue. O agente valida dependências e alternativas se a compatibilidade do DnD exigir um adaptador.
+**Entrega.** Criar manifesto Cargo, perfil release, lockfile, esqueleto compilável e tipos de domínio da arquitetura. Fixar versões verificadas de Slint, seu backend desktop e Tokio. Provar abertura de janela com identificação do app, arraste externo de múltiplos arquivos e seletor portal. Registrar requisitos Wayland/XKB e diferenças entre Workstation e Silverblue. O agente valida dependências e alternativas se a compatibilidade do DnD exigir um adaptador.
 
-**Aceite.** `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` e `cargo test` passam. Registrar sessão, compositor e versão ao testar entrada múltipla Wayland nativa e X11. Registrar as assinaturas e limitações para os agentes dos cards 2 e 3.
+**Aceite.** `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` e `cargo test` passam. Registrar sessão, compositor e versão ao testar entrada múltipla Wayland nativa e X11. Registrar as assinaturas e limitações para os agentes dos cards 2 e 3. [Evidência de aceite e ambientes](card-1-fedora.md).
 
 ## Card 2 — Motor FFmpeg e fila assíncrona
 

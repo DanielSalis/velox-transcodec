@@ -1,0 +1,19 @@
+[package]
+name = "velox-transcode"
+version = "0.1.0"
+description = "Transcodificador nativo de vídeo em lote para Fedora"
+edition = "2024"
+rust-version = "1.95"
+
+[dependencies]
+rfd = { version = "=0.18.0", default-features = false, features = ["xdg-portal"] }
+slint = { version = "=1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-qt"] }
+tokio = { version = "=1.54.1", features = ["rt-multi-thread"] }
+
+[build-dependencies]
+slint-build = { version = "=1.19.0", default-features = false, features = ["compat-1-18"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

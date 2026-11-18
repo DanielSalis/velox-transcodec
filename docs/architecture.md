@@ -1,4 +1,4 @@
-# Arquitetura proposta
+# Arquitetura
 
 ## Fronteiras e propriedade
 
@@ -10,30 +10,30 @@
 | `web/` | Site estático e mockups interativos, com o SVG da marca também usado pela instalação | 4 |
 | `install.sh`, `packaging/` | Instalação do usuário, desktop entry, formatos de distribuição e verificação | 5 |
 
-Card 1 cria o manifesto e esqueleto compilável. Cards 2 e 3 coordenam alterações de manifesto e módulos compartilhados. Em fase 2 o perfil release terá `lto = true`, `codegen-units = 1`, `strip = true`, e o pacote utilizará `Cargo.lock`.
+O card 1 entrega o manifesto, o lockfile, o perfil release e a janela de prova em `src/main.rs` e `ui/intake.slint`. O card 3 assume esses pontos de entrada e substitui a apresentação da prova pela interface do produto. Cards 2 e 3 coordenam alterações de manifesto e módulos compartilhados.
 
 ## Desktop e ambiente Fedora
 
-**Decisão proposta: Slint com estilo próprio, Winit e renderização por software como perfil inicial.** O layout é majoritariamente estático, o renderer dispensa GPU para a UI e o backend Winit cobre Wayland e X11. A renderização da UI e o encoder de vídeo são independentes. O card 1 mede a versão fixada no host antes de consolidar a escolha. [Backends do Slint](https://docs.slint.dev/latest/docs/rust/slint/docs/cargo_features/) · [Eventos Iced](https://docs.rs/iced/latest/iced/window/enum.Event.html)
+**Slint 1.19.0 com estilo próprio e backend Qt 6.** O backend Winit do Slint 1.19.0 usa a série 0.30 e não expõe arraste de arquivos externo em Wayland nativo. O backend Qt encaminha eventos nativos para `DropArea` e popula `DataTransfer::file_paths()` a partir dos arquivos oferecidos. A Qt é uma dependência nativa em runtime. O backend de janela permanece independente da aceleração do encoder de vídeo. [Backend Qt do Slint 1.19.0](https://docs.rs/crate/i-slint-backend-qt/1.19.0/source/qt_window.rs) · [Arraste em Wayland no Winit](https://github.com/rust-windowing/winit/pull/4571)
 
-O maior risco é receber arraste externo de múltiplos arquivos no Wayland nativo. O Winit tem uma API de DnD upstream. A versão fixada do Slint precisa expô-la e passar uma prova em execução, incluindo X11. Verificar `DropArea` e a leitura de `text/uri-list`, com Nautilus e Dolphin nas sessões testadas. Se a versão estável exigir integração adicional, delimitar um adaptador e registrar a evidência no card 1. Um caminho via XWayland é cobertura de compatibilidade, e a aceitação Wayland nativa continua explícita. Portal resolve o seletor, não o arraste sobre a superfície. [API de drag & drop no Winit](https://github.com/rust-windowing/winit/pull/4571) · [Drag & drop no Slint](https://docs.slint.dev/latest/docs/slint/reference/drag-and-drop/dragarea/)
+O seletor múltiplo usa `rfd` assíncrono via XDG Desktop Portal. Arraste, portal e argumentos de abertura convergem em `QueueCommand::AddFiles`; os valores permanecem `PathBuf` até a camada de apresentação. A prova usa o portal sem janela pai. O card 3 pode avaliar o vínculo ao integrar a janela completa e o seletor de destino. [rfd 0.18.0](https://docs.rs/rfd/0.18.0/rfd/)
 
-Usar `rfd` assíncrono com XDG Desktop Portal para seleção múltipla e pasta de destino. Drag & drop, portal e acionamento de arquivos pelo .desktop convergem em `AddFiles`. Usar caminhos locais como `PathBuf` até a camada de apresentação. Identidade provisória `dev.veloxtranscode.Velox` para nome do .desktop, ícone e app ID Wayland, sujeita à confirmação do namespace para publicação. Medir a classe real X11 para `StartupWMClass`. [Slint set_xdg_app_id](https://docs.slint.dev/latest/docs/rust/slint/fn.set_xdg_app_id.html)
+Identidade provisória `dev.veloxtranscode.Velox` para o nome do .desktop, ícone e app ID Wayland, sujeita à confirmação do namespace para publicação. A classe medida em X11 nesta compilação foi `velox-transcode`; o card 5 repete a medição no artefato instalado antes de definir `StartupWMClass`. [Ambientes e evidências](card-1-fedora.md)
 
 ## Contratos de integração
 
-Nomes abaixo são propostas para o card 1 congelar nas interfaces Rust. Tipos de domínio são a fronteira entre a UI e o motor.
+As interfaces estão em [`src/domain`](../src/domain). Elas são independentes de Slint e FFmpeg.
 
 | Contrato | Campos e comportamento |
 | --- | --- |
-| `MediaInfo` | ID estável, caminho, stream de vídeo escolhido, codec, largura, altura, taxa racional de FPS, bitrate e duração opcionais, bytes originais e streams de áudio |
-| `EncoderCapability` | ID (`Vaapi`, `Nvenc`, `X264`), dispositivo quando aplicável, opções suportadas e motivo de indisponibilidade para diagnóstico |
-| `OutputSettings` | Encoder, qualidade 18–28, velocidade, perfil, áudio Copy/AAC 192/AAC 320, container MP4/MKV/MOV e pasta de destino |
-| `QueueCommand` | Adicionar caminhos, iniciar seleção com configurações imutáveis por lote e cancelar execução. Validações devolvem erros tipados |
-| `QueueEvent` | Probe por item, capacidades, transições e progresso por ID, seguido de resumo final de lote |
-| `ProgressSnapshot` | Tempo processado, FPS e velocidade opcionais, percentual/ETA opcionais, bytes finais e redução após conclusão |
+| `MediaInfo` | `MediaId` da sessão, caminho, stream de vídeo e streams de áudio, duração/bitrate opcionais e bytes originais. FPS racional com numerador e denominador positivos quando disponível |
+| `EncoderCapability` | `EncoderTarget` com nó VA-API, índice NVENC ou x264. `support` descreve os controles validados ou o motivo tipado de falha |
+| `OutputSettings` | Encoder, `Quality` validada em 18–28, preset tipado, perfil, áudio, container e pasta de destino |
+| `QueueCommand` | Adicionar arquivos, sondar encoders, iniciar uma seleção com configurações do lote e cancelar por `BatchId` |
+| `QueueEvent` | Entrada, probe, capacidades, estado, progresso e conclusão. Erros tipados distinguem rejeição de comando e falha de trabalho |
+| `ProgressSnapshot`, `BatchProgress` e `JobOutput` | Tempo processado, FPS, velocidade, ETA e percentual. Percentuais usam a escala 0–100. A saída inclui destino, bytes e redução a partir do tamanho final |
 
-O thread da janela aplica os eventos via event loop do Slint. Tokio executa probes, inventário de hardware e transcodes. Canais limitados e coalescência de progresso preservam a responsividade sem perder mudanças de estado ou conclusão. Transições esperadas: `Probing → Ready → Queued → Running → Succeeded | Failed | Cancelled`; erro de metadados também pode encerrar `Probing`. Um `QueueFinished` produz uma notificação D-Bus via `notify-rust`; indisponibilidade do serviço é um evento não fatal.
+O thread da janela aplica os eventos pelo event loop do Slint. Tokio executa probes, inventário de hardware e transcodes. Canais limitados e coalescência de progresso preservam a responsividade. `ItemAdded` inicia a sondagem e `MediaProbed` sinaliza que o item está pronto. Falha de probe, fila, execução e estados terminais chegam em `ItemChanged`. `BatchFinished` fornece o resumo para uma notificação D-Bus via `notify-rust`; indisponibilidade do serviço é um evento não fatal.
 
 ## Estratégia de mídia
 

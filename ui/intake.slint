@@ -1,0 +1,79 @@
+import { Button, ListView } from "std-widgets.slint";
+
+export component IntakeWindow inherits Window {
+    title: "Velox Transcode";
+    icon: @image-url("../web/assets/velox-transcode.svg");
+    min-width: 460px;
+    min-height: 320px;
+    preferred-width: 540px;
+    preferred-height: 380px;
+    background: #0f1012;
+
+    in property <[string]> files: [];
+    in-out property <bool> picking: false;
+    callback pick-files();
+    pure callback has-files(data-transfer) -> bool;
+    callback receive-files(data-transfer) -> bool;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 14px;
+
+        HorizontalLayout {
+            alignment: space-between;
+            spacing: 12px;
+            Text {
+                text: "Arquivos de vídeo";
+                color: #faf9fa;
+                font-size: 22px;
+                vertical-alignment: center;
+            }
+            Button {
+                text: "Selecionar arquivos";
+                enabled: !root.picking;
+                clicked => { root.pick-files(); }
+            }
+        }
+
+        Rectangle {
+            background: #161719;
+            border-color: drop-zone.current-action == DragAction.copy ? #b4d3ff : #666b72;
+            border-width: 1px;
+            border-radius: 8px;
+            min-height: 64px;
+            Text {
+                text: "Arraste arquivos de vídeo para cá";
+                color: #e5e5e4;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+            drop-zone := DropArea {
+                can-drop(event) => {
+                    root.has-files(event.data) ? DragAction.copy : DragAction.none
+                }
+                dropped(event) => {
+                    root.receive-files(event.data) ? DragAction.copy : DragAction.none
+                }
+            }
+        }
+
+        ListView {
+            for path in root.files: Text {
+                text: path;
+                color: #e5e5e4;
+                font-size: 14px;
+                overflow: elide;
+                vertical-alignment: center;
+                height: 26px;
+            }
+        }
+
+        Text {
+            text: root.picking ? "Aguardando o seletor do sistema…" :
+                  root.files.length == 1 ? "1 arquivo recebido" :
+                  "\{root.files.length} arquivos recebidos";
+            color: #d7d7d6;
+            font-size: 14px;
+        }
+    }
+}
