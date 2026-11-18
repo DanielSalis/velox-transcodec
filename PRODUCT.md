@@ -14,12 +14,12 @@ Rust Edition 2024, Tokio, Slint e subprocessos FFmpeg/ffprobe. A página começa
 
 ## Público e objetivo
 
-Pessoas que convertem arquivos de vídeo no Fedora precisam inspecionar a origem, ajustar o H.264 de saída e executar lotes com progresso legível. O Velox reúne esses passos em uma janela nativa e usa os encoders que conseguirem operar no ambiente.
+Pessoas que convertem arquivos de vídeo no Fedora precisam inspecionar a origem, escolher H.264 ou Apple ProRes e executar lotes com progresso legível. O Velox reúne esses passos em uma janela nativa e usa os encoders que conseguirem operar no ambiente.
 
 ## Fluxo
 
 1. Adicionar vários arquivos por arraste ou seletor nativo e ler codec, resolução, FPS, bitrate e duração.
-2. Ajustar encoder, qualidade 18–28, velocidade, perfil H.264, áudio e container.
+2. Escolher H.264 com encoder, qualidade, velocidade, perfil, áudio e contêiner, ou ProRes com perfil 422 e áudio PCM ou copiado em MOV.
 3. Executar o lote, acompanhar progresso, FPS, ETA e redução após conclusão e receber uma notificação de sistema.
 
 O trabalho fica local. A página apresenta a experiência com componentes HTML/CSS/JS interativos e arquivos de demonstração.

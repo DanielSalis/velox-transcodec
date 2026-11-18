@@ -1,5 +1,7 @@
 mod intake;
 mod view;
+#[cfg(velox_qt_resize)]
+mod window_resize;
 
 use std::{cell::RefCell, path::PathBuf, rc::Rc, time::Duration};
 
@@ -32,6 +34,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let window = DesktopWindow::new()?;
     let state = Rc::new(RefCell::new(Desktop::new(&window, commands)));
     wire_callbacks(&window, &state, &worker);
+    #[cfg(velox_qt_resize)]
+    window_resize::wire(&window);
 
     let weak = window.as_weak();
     let ui_state = state.clone();
@@ -69,6 +73,14 @@ fn wire_callbacks(window: &DesktopWindow, state: &Rc<RefCell<Desktop>>, worker: 
         move || {
             if let Some(window) = window.upgrade() {
                 state.borrow_mut().toggle_inclusion(&window);
+            }
+        }
+    });
+    window.on_codec_changed({
+        let (window, state) = refs(window, state);
+        move || {
+            if let Some(window) = window.upgrade() {
+                state.borrow().select_codec(&window);
             }
         }
     });

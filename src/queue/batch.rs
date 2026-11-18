@@ -10,8 +10,8 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     domain::{
-        BatchId, BatchProgress, BatchSummary, EncoderTarget, ItemState, MediaId, MediaInfo,
-        OutputSettings, ProgressSnapshot, QueueEvent,
+        BatchId, BatchProgress, BatchSummary, EncoderTarget, H264Settings, ItemState, MediaId,
+        MediaInfo, OutputSettings, ProgressSnapshot, QueueEvent, VideoOutput,
     },
     media::{JobError, MediaEngine, VideoJob},
 };
@@ -66,7 +66,13 @@ pub(super) async fn run(
         .await;
 
     let cpus = std::thread::available_parallelism().map_or(1, |count| count.get());
-    let concurrency = if settings.encoder == EncoderTarget::X264 {
+    let concurrency = if matches!(
+        settings.video,
+        VideoOutput::H264(H264Settings {
+            encoder: EncoderTarget::X264,
+            ..
+        }) | VideoOutput::ProRes { .. }
+    ) {
         cpus.min(2)
     } else {
         1

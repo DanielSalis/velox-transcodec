@@ -2554,8 +2554,11 @@ dependencies = [
 name = "velox-transcode"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "futures-util",
+ "i-slint-backend-qt",
  "notify-rust",
+ "qttypes",
  "rfd",
  "serde",
  "serde_json",

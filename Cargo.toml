@@ -7,7 +7,9 @@ rust-version = "1.95"
 
 [dependencies]
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
+i-slint-backend-qt = { version = "=1.19.0", default-features = false }
 notify-rust = { version = "=4.19.0", default-features = false, features = ["z-with-tokio"] }
+qttypes = { version = "0.2.12", default-features = false }
 rfd = { version = "=0.18.0", default-features = false, features = ["xdg-portal"] }
 slint = { version = "=1.19.0", default-features = false, features = ["std", "compat-1-18", "backend-qt"] }
 serde = { version = "1", features = ["derive"] }
@@ -17,6 +19,7 @@ tokio = { version = "=1.54.1", features = ["fs", "io-util", "macros", "process",
 tokio-util = { version = "0.7", features = ["rt"] }
 
 [build-dependencies]
+cc = "1.2"
 slint-build = { version = "=1.19.0", default-features = false, features = ["compat-1-18"] }
 
 [profile.release]

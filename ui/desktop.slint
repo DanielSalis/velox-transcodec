@@ -1,5 +1,6 @@
 import { ListView } from "std-widgets.slint";
 import { Theme, Label, Heading, Rule, Action, Choice, Range, Meter } from "controls.slint";
+import { WindowTitleBar } from "window-title-bar.slint";
 import "fonts/host-grotesk.ttf";
 import "fonts/instrument-sans.ttf";
 
@@ -119,6 +120,7 @@ component ChoiceField inherits VerticalLayout {
 
 export component DesktopWindow inherits Window {
     title: "Velox Transcode";
+    no-frame: true;
     icon: @image-url("../web/assets/velox-transcode.svg");
     default-font-family: "Instrument Sans";
     default-font-size: 16px;
@@ -147,57 +149,52 @@ export component DesktopWindow inherits Window {
     in property <string> queue-message;
     in property <bool> detecting: true;
     in property <string> encoder-message;
+    in property <string> prores-message;
     in property <[string]> encoders;
     in property <[string]> presets;
     in property <[string]> profiles;
+    in property <[string]> prores-profiles;
     in property <string> quality-label: "Qualidade";
     in property <string> destination;
+    in-out property <int> codec-index;
+    out property <bool> prores: codec-index == 1;
     in-out property <int> encoder-index;
     in-out property <int> preset-index;
     in-out property <int> profile-index;
     in-out property <int> quality: 22;
     in-out property <int> audio-index;
     in-out property <int> container-index;
+    in-out property <int> prores-profile-index;
+    in-out property <int> prores-audio-index;
 
     callback pick-files();
     callback pick-destination();
     callback inspect(int);
     callback toggle-inclusion();
+    callback codec-changed();
     callback encoder-changed(int);
     callback recover-audio();
     callback toggle-queue();
     callback detect-encoders();
+    callback resize-from-edge(int, int);
     pure callback has-files(data-transfer) -> bool;
     callback receive-files(data-transfer) -> bool;
 
+    private property <length> resize-margin: 8px;
+    private property <string> output-message: prores ? prores-message : encoder-message;
+
     VerticalLayout {
-        padding: 16px;
         spacing: 0;
 
-        Rectangle {
-            height: 53px;
-            border-top-left-radius: Theme.radius;
-            border-top-right-radius: Theme.radius;
-            border-width: 1px;
-            border-color: Theme.separator;
-            background: Theme.surface;
-
-            HorizontalLayout {
-                padding-left: 18px;
-                padding-right: 18px;
-                spacing: 10px;
-                Rectangle {
-                    width: 26px;
-                    Image {
-                        y: (parent.height - self.height) / 2;
-                        source: @image-url("../web/assets/velox-transcode.svg");
-                        width: 26px;
-                        height: 26px;
-                    }
-                }
-                Heading { text: "Velox Transcode"; horizontal-stretch: 1; }
-            }
+        WindowTitleBar {
+            title: root.title;
+            maximized: root.maximized;
+            minimize => { root.minimized = true; }
+            toggle-maximize => { root.maximized = !root.maximized; }
+            request-close => { root.close(); }
         }
+
+        Rule {}
 
         HorizontalLayout {
             spacing: 0;
@@ -206,8 +203,6 @@ export component DesktopWindow inherits Window {
             Rectangle {
                 horizontal-stretch: 1;
                 min-width: 480px;
-                border-width: 1px;
-                border-color: Theme.separator;
                 background: Theme.ground;
 
                 VerticalLayout {
@@ -299,7 +294,7 @@ export component DesktopWindow inherits Window {
                             max-height: 58px;
                         }
                         if root.detail-recover-audio: Action {
-                            label: "Usar AAC 192 kbps";
+                            label: root.prores ? "Usar PCM 24 bits" : "Usar AAC 192 kbps";
                             enabled: !root.busy;
                             clicked => { root.recover-audio(); }
                         }
@@ -307,38 +302,50 @@ export component DesktopWindow inherits Window {
                 }
             }
 
+            Rectangle { width: 1px; background: Theme.separator; }
+
             Rectangle {
                 min-width: 338px;
                 preferred-width: 350px;
                 horizontal-stretch: 0;
-                border-width: 1px;
-                border-color: Theme.separator;
                 background: Theme.surface;
                 VerticalLayout {
                     padding: 17px;
                     spacing: 9px;
                     HorizontalLayout {
-                        height: 34px;
+                        height: 36px;
                         spacing: 8px;
-                        Heading { text: "Saída"; }
-                        Label { text: "H.264"; color: Theme.accent; horizontal-stretch: 1; }
+                        Heading { text: "Saída"; horizontal-stretch: 1; }
+                        Choice {
+                            width: 132px;
+                            label: "Codec de saída";
+                            options: ["H.264", "ProRes"];
+                            enabled: !root.busy;
+                            current-index <=> root.codec-index;
+                            changed-index(index) => { root.codec-changed(); }
+                        }
                     }
 
-                    ChoiceField {
+                    if !root.prores: ChoiceField {
                         label: "Encoder";
                         options: root.encoders;
                         enabled: !root.busy && !root.detecting;
                         current-index <=> root.encoder-index;
                         changed-index(index) => { root.encoder-changed(index); }
                     }
+                    if root.prores: VerticalLayout {
+                        spacing: 4px;
+                        Label { text: "Encoder"; color: Theme.muted; font-size: 12px; }
+                        Label { text: "ProRes · CPU"; }
+                    }
                     if root.detecting: Label { text: "Verificando os encoders…"; color: Theme.muted; font-size: 12px; }
-                    if root.encoder-message != "" && !root.detecting: VerticalLayout {
+                    if root.output-message != "" && !root.detecting: VerticalLayout {
                         spacing: 6px;
-                        Label { text: root.encoder-message; color: Theme.muted; wrap: word-wrap; font-size: 12px; min-width: 0px; }
+                        Label { text: root.output-message; color: Theme.muted; wrap: word-wrap; font-size: 12px; min-width: 0px; }
                         Action { label: "Verificar encoders"; enabled: !root.busy; clicked => { root.detect-encoders(); } }
                     }
 
-                    VerticalLayout {
+                    if !root.prores: VerticalLayout {
                         spacing: 2px;
                         vertical-stretch: 0;
                         HorizontalLayout {
@@ -352,7 +359,7 @@ export component DesktopWindow inherits Window {
                         }
                     }
 
-                    HorizontalLayout {
+                    if !root.prores: HorizontalLayout {
                         spacing: 9px;
                         ChoiceField {
                             label: "Preset"; options: root.presets;
@@ -366,7 +373,7 @@ export component DesktopWindow inherits Window {
                         }
                     }
 
-                    HorizontalLayout {
+                    if !root.prores: HorizontalLayout {
                         spacing: 9px;
                         ChoiceField {
                             label: "Áudio"; options: ["Copy", "AAC 192 kbps", "AAC 320 kbps"];
@@ -378,6 +385,32 @@ export component DesktopWindow inherits Window {
                             enabled: !root.busy;
                             current-index <=> root.container-index;
                         }
+                    }
+
+                    if root.prores: ChoiceField {
+                        label: "Perfil ProRes"; options: root.prores-profiles;
+                        enabled: !root.busy && !root.detecting;
+                        current-index <=> root.prores-profile-index;
+                    }
+                    if root.prores: HorizontalLayout {
+                        spacing: 9px;
+                        ChoiceField {
+                            label: "Áudio"; options: ["PCM 24 bits", "Copiar"];
+                            enabled: !root.busy && !root.detecting && root.prores-profiles.length > 0;
+                            current-index <=> root.prores-audio-index;
+                        }
+                        VerticalLayout {
+                            spacing: 4px;
+                            Label { text: "Container"; color: Theme.muted; font-size: 12px; }
+                            Label { text: "MOV"; min-height: 36px; }
+                        }
+                    }
+                    if root.prores: Label {
+                        text: "Formato para edição. O arquivo pode ficar maior.";
+                        color: Theme.muted;
+                        font-size: 12px;
+                        min-width: 0px;
+                        wrap: word-wrap;
                     }
 
                     Rectangle { vertical-stretch: 1; }
@@ -396,12 +429,10 @@ export component DesktopWindow inherits Window {
             }
         }
 
+        Rule {}
+
         Rectangle {
             min-height: 88px;
-            border-bottom-left-radius: Theme.radius;
-            border-bottom-right-radius: Theme.radius;
-            border-width: 1px;
-            border-color: Theme.separator;
             background: Theme.surface;
 
             HorizontalLayout {
@@ -435,6 +466,29 @@ export component DesktopWindow inherits Window {
                         clicked => { root.toggle-queue(); }
                     }
                 }
+            }
+        }
+    }
+
+    for edge in [
+        { horizontal: -1, vertical: -1, cursor: MouseCursor.nwse-resize },
+        { horizontal:  0, vertical: -1, cursor: MouseCursor.ns-resize },
+        { horizontal:  1, vertical: -1, cursor: MouseCursor.nesw-resize },
+        { horizontal: -1, vertical:  0, cursor: MouseCursor.ew-resize },
+        { horizontal:  1, vertical:  0, cursor: MouseCursor.ew-resize },
+        { horizontal: -1, vertical:  1, cursor: MouseCursor.nesw-resize },
+        { horizontal:  0, vertical:  1, cursor: MouseCursor.ns-resize },
+        { horizontal:  1, vertical:  1, cursor: MouseCursor.nwse-resize },
+    ]: TouchArea {
+        enabled: !root.maximized && !root.full-screen;
+        x: edge.horizontal < 0 ? 0px : edge.horizontal == 0 ? root.resize-margin : root.width - root.resize-margin;
+        y: edge.vertical < 0 ? 0px : edge.vertical == 0 ? root.resize-margin : root.height - root.resize-margin;
+        width: edge.horizontal == 0 ? root.width - 2 * root.resize-margin : root.resize-margin;
+        height: edge.vertical == 0 ? root.height - 2 * root.resize-margin : root.resize-margin;
+        mouse-cursor: edge.cursor;
+        pointer-event(event) => {
+            if event.kind == PointerEventKind.down && event.button == PointerEventButton.left {
+                root.resize-from-edge(edge.horizontal, edge.vertical);
             }
         }
     }

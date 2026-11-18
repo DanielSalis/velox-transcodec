@@ -34,8 +34,8 @@ for command in ffmpeg ffprobe desktop-file-validate update-desktop-database ldd 
 done
 ffprobe -version >/dev/null || fail "O ffprobe não conseguiu iniciar."
 encoders=$(ffmpeg -hide_banner -encoders 2>&1) || fail "O FFmpeg não conseguiu listar os encoders."
-if ! awk '$1 ~ /^V/ && $2 ~ /^(libx264|h264_vaapi|h264_nvenc)$/ { found = 1 } END { exit !found }' <<< "$encoders"; then
-    fail "O FFmpeg precisa expor libx264, h264_vaapi ou h264_nvenc."
+if ! awk '$1 ~ /^V/ && $2 ~ /^(libx264|h264_vaapi|h264_nvenc|prores_ks)$/ { found = 1 } END { exit !found }' <<< "$encoders"; then
+    fail "O FFmpeg precisa expor um encoder H.264 do Velox ou prores_ks."
 fi
 
 libraries=$(ldconfig -p)

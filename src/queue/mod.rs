@@ -11,8 +11,8 @@ use tokio_util::sync::CancellationToken;
 
 use crate::{
     domain::{
-        BatchId, BatchSummary, CommandError, EncoderCapability, ItemState, JobFailure,
-        JobFailureKind, MediaId, MediaInfo, OutputSettings, QueueCommand, QueueEvent,
+        BatchId, BatchSummary, CommandError, ItemState, JobFailure, JobFailureKind, MediaId,
+        MediaInfo, OutputCapabilities, OutputSettings, QueueCommand, QueueEvent, VideoOutput,
     },
     media::MediaEngine,
 };
@@ -48,7 +48,7 @@ struct Service {
     next_media: u64,
     next_batch: u64,
     probe_backlog: VecDeque<(MediaId, PathBuf)>,
-    capabilities: Vec<EncoderCapability>,
+    capabilities: Option<OutputCapabilities>,
     wants_detection: bool,
     active: Option<ActiveBatch>,
 }
@@ -62,7 +62,7 @@ impl Service {
             next_media: 1,
             next_batch: 1,
             probe_backlog: VecDeque::new(),
-            capabilities: Vec::new(),
+            capabilities: None,
             wants_detection: false,
             active: None,
         }
@@ -81,7 +81,7 @@ impl Service {
             }
             if self.wants_detection && detection.is_none() && self.active.is_none() {
                 self.wants_detection = false;
-                self.capabilities.clear();
+                self.capabilities = None;
                 let engine = self.engine.clone();
                 detection = Some(tokio::spawn(async move { engine.detect_encoders().await }));
             }
@@ -113,7 +113,7 @@ impl Service {
                     }).and_then(|result| result);
                     let event = match result {
                         Ok(capabilities) => {
-                            self.capabilities = capabilities.clone();
+                            self.capabilities = Some(capabilities.clone());
                             QueueEvent::EncoderCapabilities(capabilities)
                         }
                         Err(error) => QueueEvent::EncoderDetectionFailed(error),
@@ -206,22 +206,7 @@ impl Service {
                     .ok_or(CommandError::ItemNotReady { media_id: id })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        let target = &settings.encoder;
-        let options = self
-            .capabilities
-            .iter()
-            .find(|capability| &capability.target == target)
-            .and_then(|capability| capability.support.as_ref().ok())
-            .ok_or_else(|| CommandError::EncoderUnavailable {
-                target: target.clone(),
-            })?;
-        if !options.presets.contains(&settings.preset)
-            || !options.profiles.contains(&settings.profile)
-        {
-            return Err(CommandError::UnsupportedEncoderSettings {
-                target: target.clone(),
-            });
-        }
+        self.validate_output(&settings.video)?;
         let destination = &settings.destination;
         settings.destination = tokio::fs::canonicalize(destination)
             .await
@@ -246,5 +231,39 @@ impl Service {
             cancellation,
             task,
         })
+    }
+
+    fn validate_output(&self, video: &VideoOutput) -> Result<(), CommandError> {
+        match video {
+            VideoOutput::H264(settings) => {
+                let target = &settings.encoder;
+                let options = self
+                    .capabilities
+                    .as_ref()
+                    .and_then(|caps| caps.h264.iter().find(|cap| &cap.target == target))
+                    .and_then(|cap| cap.support.as_ref().ok())
+                    .ok_or_else(|| CommandError::EncoderUnavailable {
+                        target: target.clone(),
+                    })?;
+                if !options.presets.contains(&settings.preset)
+                    || !options.profiles.contains(&settings.profile)
+                {
+                    return Err(CommandError::UnsupportedEncoderSettings {
+                        target: target.clone(),
+                    });
+                }
+            }
+            VideoOutput::ProRes { profile, .. } => {
+                let profiles = self
+                    .capabilities
+                    .as_ref()
+                    .and_then(|caps| caps.prores.as_ref().ok())
+                    .ok_or(CommandError::ProResUnavailable)?;
+                if !profiles.contains(profile) {
+                    return Err(CommandError::UnsupportedProResProfile);
+                }
+            }
+        }
+        Ok(())
     }
 }

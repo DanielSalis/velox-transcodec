@@ -2,7 +2,7 @@
 
 **Cards 1 a 5 implementados.** O card 5 entrega os pacotes locais. A matriz registra as verificações pendentes em Silverblue e nas docks. O protótipo da Fase 1 serve de referência de composição. [Validação da distribuição](card-5-distribuicao.md)
 
-**Cards 6 e 7 propostos.** Ambos aguardam aprovação para implementação.
+**Cards 6 e 7 implementados. Card 8 proposto.** A barra própria foi validada em Wayland e X11. A saída ProRes foi verificada no Fedora e no bundle Flatpak. [Evidências do card 6](card-6-barra-de-titulo.md) · [Evidências do card 7](card-7-prores.md)
 
 **Dependências.** Card 1 abre os contratos para 2 e 3. Card 3 integra as entregas de 1 e 2. Card 4 pode começar em paralelo com 1 e sincroniza a representação final com 3. Card 5 integra tudo, entrega os artefatos e devolve ao card 4 os nomes, comandos e links verificados para conferência final.
 
@@ -46,6 +46,8 @@
 
 **Aceite.** No Fedora em Wayland e X11, confirmar que aparece uma única barra, que o mouse move e redimensiona a janela e que os três botões funcionam por mouse e teclado. Minimizar mantém um lote em execução. Fechar aguarda o cancelamento e a limpeza dos temporários. Verificar também restauração, atalhos do compositor, tamanho mínimo, escala de 100% e 150%, identificação no launcher e arraste externo de arquivos. Registrar capturas da janela restaurada e maximizada.
 
+**Entrega.** Barra Slint com estados sincronizados com o compositor e redimensionamento nativo pelas quatro bordas e pelos quatro cantos. O fechamento durante um lote foi testado com FFmpeg real. [Verificações e capturas](card-6-barra-de-titulo.md)
+
 ## Card 7 — Codec de saída Apple ProRes
 
 **Proposta de produto.** Adicionar **Codec de saída** com H.264 como opção inicial e ProRes como alternativa. Ao escolher ProRes, exibir **MOV**, encoder **ProRes · CPU**, perfis **422 Proxy, 422 LT, 422 e 422 HQ**, com **422** selecionado inicialmente, e áudio **PCM 24 bits** ou **Copiar** quando compatível. Os perfis substituem os controles de CRF, qualidade constante e preset nessa opção. Identificar ProRes como formato para edição e informar que o tamanho pode aumentar. [Perfis ProRes no FFmpeg](https://ffmpeg.org/ffmpeg-codecs.html#ProRes)
@@ -54,4 +56,20 @@
 
 **Aceite.** Converter pelo aplicativo uma amostra para cada perfil oferecido e conferir com ffprobe o codec, o perfil, o formato de pixel, o contêiner e o áudio. Incluir arquivo sem áudio, áudio copiado compatível, encoder ausente, colisão de nomes, cancelamento e regressão H.264. Verificar o caminho com o FFmpeg do Fedora e no Flatpak. Atualizar o manual de uso e a landing após confirmar a disponibilidade em cada canal.
 
-Os cards podem ser desenvolvidos separadamente. O card 6 trabalha no cabeçalho e nos eventos da janela. O card 7 trabalha no painel de saída, no domínio e no motor de mídia. Integrar as mudanças no arquivo Slint compartilhado e executar os testes Rust e do desktop após a integração.
+**Entrega local.** Os quatro perfis produziram MOV com ProRes 4:2:2 de 10 bits na interface nativa e no Flatpak. Os três artefatos de download e seus checksums foram atualizados. [Resultados e instruções](card-7-prores.md)
+
+## Card 8 — Ajustes de vídeo explicados no painel de saída
+
+**Objetivo.** Mostrar o que muda ao ajustar qualidade, preset e perfil H.264, com rótulos curtos no lugar da decisão e explicações adicionais sob demanda. Integrar este card depois do card 7, que também altera o painel de saída.
+
+**Proposta visual.** Manter a barra de qualidade em largura total e colocar os dois seletores abaixo, lado a lado. Usar o azul do brand kit para o valor selecionado e o foco. Tratar os rótulos das pontas e as descrições dos seletores como texto secundário para preservar a hierarquia do painel. [Brand kit](../DESIGN.md)
+
+| Controle | Texto visível | Explicação sob demanda |
+| --- | --- | --- |
+| **Qualidade do vídeo** | Valor técnico junto ao título, como **CQ 22** no NVENC, **CRF 22** no x264 ou **QP 22** no VA-API. Pontas da barra **Mais detalhes (18)** e **Arquivo menor (28)**. | Valores menores preservam mais detalhes e tendem a gerar arquivos maiores. O tamanho final depende do vídeo. CQ, CRF e QP são controles próprios de cada encoder. |
+| **Velocidade (preset)** | Descrever a opção ao lado do nome técnico no menu, como **P1 · Mais rápido**, **P4 · Equilibrado** e **P7 · Mais lento**. No x264, aplicar a mesma convenção a `ultrafast`, `medium` e `veryslow`. No VA-API, exibir **Automático** e informar que o encoder gerencia o ajuste. | Presets rápidos reduzem o tempo do lote. Presets lentos dedicam mais processamento à compressão. |
+| **Perfil H.264** | Manter **Baseline**, **Main** e **High** com uma indicação curta por opção. Usar **Aparelhos antigos**, **Compatibilidade intermediária** e **Aparelhos modernos** como descrições iniciais. | O perfil determina as técnicas de compressão permitidas e a compatibilidade com o aparelho de destino. |
+
+**Entrega.** Reaproveitar os controles Slint e acrescentar uma ação compacta **Entenda os ajustes** que abre as três explicações. Vincular os rótulos aos valores do motor, com qualidade de 18 a 28 e valor inicial 22. Atualizar os textos ao trocar de encoder. Aplicar a ajuda de perfil H.264 ao modo H.264 e usar os rótulos de perfil do card 7 no modo ProRes.
+
+**Aceite.** Conferir as três variantes de encoder, incluindo VA-API em Automático, e a troca entre H.264 e ProRes. Verificar contraste, legibilidade e ausência de truncamento na janela mínima de 880×640 px lógicos a 100% e 150%. Testar a barra, os seletores e a ajuda com mouse e teclado, incluindo foco visível, fechar com Esc e devolver o foco à ação de ajuda. Confirmar que os valores enviados à fila correspondem aos selecionados e entregar uma captura para revisão visual.

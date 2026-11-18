@@ -1,0 +1,112 @@
+import { Heading, Theme } from "controls.slint";
+
+component WindowButton inherits Rectangle {
+    in property <string> label;
+    in property <string> icon-path;
+    callback activated();
+
+    width: 36px;
+    min-height: 34px;
+
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-action-default => { root.activated(); }
+    forward-focus: keys;
+
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        height: 34px;
+        border-radius: Theme.radius;
+        border-width: keys.has-focus ? 1px : 0px;
+        border-color: Theme.accent;
+        background: touch.pressed ? Theme.accent : touch.has-hover ? Theme.separator : transparent;
+    }
+
+    Path {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        width: 16px;
+        height: 16px;
+        viewbox-width: 16;
+        viewbox-height: 16;
+        stroke-width: 1.5px;
+        stroke: touch.pressed ? Theme.inverse : Theme.secondary;
+        commands: root.icon-path;
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { keys.focus(); root.activated(); }
+    }
+
+    keys := FocusScope {
+        x: 0;
+        width: 0px;
+        key-pressed(event) => {
+            if event.text == Key.Space || event.text == Key.Return {
+                if !event.repeat { root.activated(); }
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    Tooltip { text: @markdown("\{root.label}"); }
+}
+
+export component WindowTitleBar inherits Rectangle {
+    in property <string> title;
+    in property <bool> maximized;
+    callback minimize();
+    callback toggle-maximize();
+    callback request-close();
+
+    height: 53px;
+    background: Theme.surface;
+    accessible-role: window-title-bar;
+    accessible-label: root.title;
+
+    HorizontalLayout {
+        padding-left: 18px;
+        padding-right: 10px;
+        spacing: 4px;
+
+        WindowMoveArea {
+            horizontal-stretch: 1;
+            TouchArea {
+                double-clicked => { root.toggle-maximize(); }
+            }
+            HorizontalLayout {
+                spacing: 10px;
+                Rectangle {
+                    width: 26px;
+                    Image {
+                        y: (parent.height - self.height) / 2;
+                        source: @image-url("../web/assets/velox-transcode.svg");
+                        width: 26px;
+                        height: 26px;
+                    }
+                }
+                Heading { text: root.title; min-width: 0px; horizontal-stretch: 1; }
+            }
+        }
+
+        WindowButton {
+            label: "Minimizar";
+            icon-path: "M 3 8 L 13 8";
+            activated => { root.minimize(); }
+        }
+        WindowButton {
+            label: root.maximized ? "Restaurar" : "Maximizar";
+            icon-path: root.maximized
+                       ? "M 5.5 5.5 V 2.5 H 13.5 V 10.5 H 10.5 M 2.5 5.5 H 10.5 V 13.5 H 2.5 Z"
+                       : "M 3 3 H 13 V 13 H 3 Z";
+            activated => { root.toggle-maximize(); }
+        }
+        WindowButton {
+            label: "Fechar";
+            icon-path: "M 3.5 3.5 L 12.5 12.5 M 12.5 3.5 L 3.5 12.5";
+            activated => { root.request-close(); }
+        }
+    }
+}

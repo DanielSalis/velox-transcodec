@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use super::{Container, EncoderCapability, EncoderTarget, MediaId, MediaInfo, OutputSettings};
+use super::{Container, EncoderTarget, MediaId, MediaInfo, OutputCapabilities, OutputSettings};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct BatchId(pub u64);
@@ -27,7 +27,7 @@ pub enum QueueEvent {
         path: PathBuf,
     },
     MediaProbed(MediaInfo),
-    EncoderCapabilities(Vec<EncoderCapability>),
+    EncoderCapabilities(OutputCapabilities),
     EncoderDetectionFailed(JobFailure),
     BatchStarted {
         batch_id: BatchId,
@@ -107,6 +107,8 @@ pub enum CommandError {
     UnsupportedEncoderSettings {
         target: EncoderTarget,
     },
+    ProResUnavailable,
+    UnsupportedProResProfile,
     AudioCopyIncompatible {
         media_id: MediaId,
         container: Container,

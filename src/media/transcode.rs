@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::domain::{
     AudioMode, Container, JobFailure, JobFailureKind, JobOutput, MediaInfo, OutputSettings,
-    ProgressSnapshot,
+    ProResAudio, ProgressSnapshot, VideoOutput,
 };
 
 use super::{MediaEngine, encoders, failure, local_file, process, progress::Parser};
@@ -49,7 +49,11 @@ impl MediaEngine {
             cpu_threads,
         } = job;
         let (input, source_bytes) = local_file(&media.path).await?;
-        let (format, suffix) = container(settings.container);
+        let (container, codec_suffix) = match &settings.video {
+            VideoOutput::H264(video) => (video.container, "-h264"),
+            VideoOutput::ProRes { .. } => (Container::Mov, "-prores"),
+        };
+        let (format, suffix) = container_format(container);
         let temp = tempfile::Builder::new()
             .prefix(".velox-")
             .suffix(suffix)
@@ -75,25 +79,40 @@ impl MediaEngine {
             "-filter_threads",
             "2",
         ]);
-        encoders::add_global_video_args(&mut command, &settings.encoder);
+        if let VideoOutput::H264(video) = &settings.video {
+            encoders::add_global_video_args(&mut command, &video.encoder);
+        }
         command
             .args(["-threads", "2", "-protocol_whitelist", "file", "-i"])
             .arg(&input);
         command.args(["-map", &format!("0:{}", media.video.index), "-map", "0:a?"]);
-        encoders::add_video_args(
-            &mut command,
-            &settings.encoder,
-            settings.preset,
-            settings.profile,
-            settings.quality,
-            cpu_threads,
-        );
-        match settings.audio {
-            AudioMode::Copy => command.args(["-c:a", "copy"]),
-            AudioMode::Aac192 => command.args(["-c:a", "aac", "-b:a", "192k"]),
-            AudioMode::Aac320 => command.args(["-c:a", "aac", "-b:a", "320k"]),
+        let copy_audio = match &settings.video {
+            VideoOutput::H264(video) => {
+                encoders::add_video_args(
+                    &mut command,
+                    &video.encoder,
+                    video.preset,
+                    video.profile,
+                    video.quality,
+                    cpu_threads,
+                );
+                match video.audio {
+                    AudioMode::Copy => command.args(["-c:a", "copy"]),
+                    AudioMode::Aac192 => command.args(["-c:a", "aac", "-b:a", "192k"]),
+                    AudioMode::Aac320 => command.args(["-c:a", "aac", "-b:a", "320k"]),
+                };
+                video.audio == AudioMode::Copy
+            }
+            VideoOutput::ProRes { profile, audio } => {
+                encoders::add_prores_args(&mut command, *profile, cpu_threads);
+                match audio {
+                    ProResAudio::Pcm24 => command.args(["-c:a", "pcm_s24le"]),
+                    ProResAudio::Copy => command.args(["-c:a", "copy"]),
+                };
+                *audio == ProResAudio::Copy
+            }
         };
-        if matches!(settings.container, Container::Mp4 | Container::Mov) {
+        if matches!(container, Container::Mp4 | Container::Mov) {
             command.args(["-movflags", "+faststart"]);
         }
         command.args(["-f", format]).arg(&temp);
@@ -127,7 +146,7 @@ impl MediaEngine {
             }
         };
         if !status.success() {
-            let kind = if settings.audio == AudioMode::Copy && incompatible_audio(&stderr) {
+            let kind = if copy_audio && incompatible_audio(&stderr) {
                 JobFailureKind::AudioCopyIncompatible
             } else {
                 JobFailureKind::TranscodeFailed
@@ -149,7 +168,8 @@ impl MediaEngine {
         if cancellation.is_cancelled() {
             return Err(JobError::Cancelled);
         }
-        let path = publish(temp, &settings.destination, &input, suffix).map_err(output_error)?;
+        let path = publish(temp, &settings.destination, &input, codec_suffix, suffix)
+            .map_err(output_error)?;
         let reduction_percent =
             (source_bytes != 0).then(|| 100.0 * (1.0 - bytes as f64 / source_bytes as f64));
         Ok(JobOutput {
@@ -172,7 +192,7 @@ fn output_error(error: io::Error) -> JobFailure {
     failure(JobFailureKind::OutputUnavailable, error)
 }
 
-fn container(container: Container) -> (&'static str, &'static str) {
+fn container_format(container: Container) -> (&'static str, &'static str) {
     match container {
         Container::Mp4 => ("mp4", ".mp4"),
         Container::Mkv => ("matroska", ".mkv"),
@@ -184,6 +204,7 @@ fn publish(
     mut temp: TempPath,
     destination: &Path,
     input: &Path,
+    codec_suffix: &str,
     suffix: &str,
 ) -> io::Result<PathBuf> {
     let stem = input
@@ -191,7 +212,7 @@ fn publish(
         .unwrap_or_else(|| std::ffi::OsStr::new("video"));
     for index in 1_u32.. {
         let mut name = OsString::from(stem);
-        name.push("-h264");
+        name.push(codec_suffix);
         if index > 1 {
             name.push(format!("-{index}"));
         }

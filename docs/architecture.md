@@ -20,6 +20,8 @@ Os seletores de vídeos e de pasta de destino usam `rfd` assíncrono via XDG Des
 
 O desktop entry, o ícone e o app ID Wayland usam `dev.veloxtranscode.Velox`, sujeito à confirmação do namespace para publicação. Em X11, `StartupWMClass=velox-transcode` corresponde à classe medida com o aplicativo instalado. [Ambientes e evidências](card-5-distribuicao.md)
 
+A barra de título é desenhada em Slint. O backend Qt aplica os estados da janela e executa a movimentação. O redimensionamento parte de áreas Slint nas bordas e nos cantos e delega ao compositor por `QWindow::startSystemResize`. A ação Fechar usa o mesmo pedido de fechamento do sistema para aguardar a limpeza de um lote ativo. [Barra de título e verificações](card-6-barra-de-titulo.md)
+
 ## Contratos de integração
 
 As interfaces estão em [`src/domain`](../src/domain). Elas são independentes de Slint e FFmpeg.
@@ -28,7 +30,8 @@ As interfaces estão em [`src/domain`](../src/domain). Elas são independentes d
 | --- | --- |
 | `MediaInfo` | `MediaId` da sessão, caminho, stream de vídeo e streams de áudio, duração/bitrate opcionais e bytes originais. FPS racional com numerador e denominador positivos quando disponível |
 | `EncoderCapability` | `EncoderTarget` com nó VA-API, índice NVENC ou x264. `support` descreve os controles validados ou o motivo tipado de falha |
-| `OutputSettings` | Encoder, `Quality` validada em 18–28, preset tipado, perfil, áudio, container e pasta de destino |
+| `OutputCapabilities` | Encoders e controles H.264 validados, mais os perfis ProRes disponíveis ou o motivo de indisponibilidade |
+| `OutputSettings` | Pasta de destino e saída tipada. H.264 recebe encoder, qualidade, preset, perfil, áudio e contêiner. ProRes recebe perfil e áudio e usa MOV |
 | `QueueCommand` | Adicionar arquivos, sondar encoders, iniciar uma seleção com configurações do lote e cancelar por `BatchId` |
 | `QueueEvent` | Entrada, probe, capacidades, estado, progresso e conclusão. Erros tipados distinguem rejeição de comando e falha de trabalho |
 | `ProgressSnapshot`, `BatchProgress` e `JobOutput` | Tempo processado, FPS, velocidade, ETA e percentual. Percentuais usam a escala 0–100. A saída inclui destino, bytes e redução a partir do tamanho final |
@@ -39,9 +42,10 @@ A interface recebe `QueueEvent` de [`queue::spawn`](../src/queue/mod.rs) e aplic
 
 - Invocar ffprobe com saída JSON e selecionar a primeira trilha de vídeo útil, excluindo capas anexas. Tratar `N/A`, taxa indefinida e ausência de duração ou bitrate como valores opcionais. Exibir resumo do stream e duração do arquivo quando disponível. [FFprobe](https://ffmpeg.org/ffprobe.html)
 - Cruzar `ffmpeg -encoders` com um encode curto por encoder e por nó VA-API acessível. Enumerar nós `/dev/dri/renderD*`, registrar diagnóstico de inicialização e filtrar opções inviáveis. Ordem inicial determinística VA-API, NVENC, libx264, ajustável na UI. Se libx264 não iniciar, apresentar diagnóstico de build e dependências.
-- Os valores 18–28 têm semântica por encoder. x264 usa CRF e presets `ultrafast` a `veryslow`. NVENC usa modo de qualidade constante e mapeamento P1–P7. VA-API usa um modo de qualidade suportado pelo driver, com upload de frames quando necessário. Expor apenas controles validados por encoder e mapear perfis de Compatibilidade, Main e High para opções realmente aceitas. A compatibilidade Copy × container é confirmada pelo muxer do FFmpeg por arquivo. Em caso de incompatibilidade identificada, `JobFailureKind::AudioCopyIncompatible` permite oferecer AAC como recuperação. [Manual do FFmpeg](https://ffmpeg.org/ffmpeg.html) · [Opções de codecs](https://ffmpeg.org/ffmpeg-codecs.html)
+- Os valores 18–28 têm semântica por encoder H.264. x264 usa CRF e presets `ultrafast` a `veryslow`. NVENC usa modo de qualidade constante e mapeamento P1–P7. VA-API usa um modo de qualidade suportado pelo driver, com upload de frames quando necessário. Expor os perfis Baseline, Main e High validados. [Manual do FFmpeg](https://ffmpeg.org/ffmpeg.html)
+- Detectar `prores_ks` e fazer uma codificação curta de cada perfil ProRes 422 disponível. Usar 4:2:2 de 10 bits e MOV. O muxer do FFmpeg confirma a compatibilidade do áudio copiado em ambos os codecs. Uma falha tipada permite oferecer AAC para H.264 e PCM de 24 bits para ProRes. [Perfis ProRes](https://ffmpeg.org/ffmpeg-codecs.html#ProRes)
 - Validar entrada e destino locais. Invocar o executável diretamente, com argumentos estruturados e sem interpolação de shell. Desabilitar stdin e consumir stderr em paralelo com `-progress pipe:1`, com diagnóstico de tamanho limitado. Restringir protocolos aos necessários para arquivos locais e testar mídia malformada e caminhos com espaços.
-- Consumir blocos a cada chave `progress`, tolerar campos ausentes e medir unidades com fixtures. Só considerar sucesso com código de saída zero e publicação do arquivo. A fila usa até dois jobs x264 em hosts com múltiplos núcleos, com threads de encoder limitadas por job. Um lote de hardware executa um job por vez no dispositivo escolhido. Cancelar mata e aguarda o subprocesso e remove temporários.
+- Consumir blocos a cada chave `progress`, tolerar campos ausentes e medir unidades com fixtures. Só considerar sucesso com código de saída zero e publicação do arquivo. A fila usa até dois jobs x264 ou ProRes em hosts com múltiplos núcleos, com threads de encoder limitadas por job. Um lote de hardware executa um job por vez no dispositivo escolhido. Cancelar mata e aguarda o subprocesso e remove temporários.
 - Gerar temporário com extensão de container no diretório final. Publicar sem sobrescrita com `TempPath::persist_noclobber` e tentar sufixos numéricos em caso de colisão, inclusive entre processos. Preservar entradas e resultados anteriores. Percentual global ponderado por duração quando conhecida, com contagem de itens quando houver duração ausente. ETA e FPS permanecem indisponíveis até medição válida. Redução = `100 × (1 − bytes_saida / bytes_entrada)`, podendo ser negativa quando o arquivo crescer.
 
 ## Web e distribuição

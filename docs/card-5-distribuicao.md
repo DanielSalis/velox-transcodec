@@ -2,7 +2,7 @@
 
 ## Fedora Workstation
 
-O instalador compila com o lockfile, verifica Qt 6, Wayland/XKB, FFmpeg e ffprobe, instala o binário, o ícone SVG, o desktop entry e as licenças das fontes em `~/.local`, e atualiza o cache MIME. Use um FFmpeg que ofereça pelo menos um encoder H.264 utilizável, o backend de portal da sessão e o plugin Qt para Wayland. Para compilação use Cargo, um compilador C++ e `qt6-qtbase-devel`. As ferramentas do desktop entry vêm de `desktop-file-utils`. [Dependências Qt e evidências do card 1](card-1-fedora.md)
+O instalador compila com o lockfile, verifica Qt 6, Wayland/XKB, FFmpeg e ffprobe, instala o binário, o ícone SVG, o desktop entry e as licenças das fontes em `~/.local`, e atualiza o cache MIME. Use o backend de portal da sessão, o plugin Qt para Wayland e um FFmpeg com um encoder H.264 compatível ou `prores_ks`. Para compilação use Cargo, um compilador C++ e `qt6-qtbase-devel`. As ferramentas do desktop entry vêm de `desktop-file-utils`. [Dependências Qt e evidências do card 1](card-1-fedora.md) · [Saída ProRes](card-7-prores.md)
 
 ```sh
 ./install.sh

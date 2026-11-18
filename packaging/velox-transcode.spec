@@ -12,7 +12,7 @@ Requires:       xdg-desktop-portal
 Requires:       desktop-file-utils
 
 %description
-Velox Transcode é um aplicativo nativo para converter vídeos em lote para H.264.
+Velox Transcode é um aplicativo nativo para converter vídeos em lote para H.264 e Apple ProRes.
 
 %prep
 %setup -q -c -n velox-rpm-payload

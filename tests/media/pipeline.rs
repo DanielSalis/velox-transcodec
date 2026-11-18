@@ -9,9 +9,10 @@ use tempfile::TempDir;
 use velox_transcode::domain::OutputSettings;
 use velox_transcode::{
     domain::{
-        AudioMode, BatchSummary, CommandError, Container, EncoderCapability, EncoderTarget,
-        H264Profile, ItemState, JobFailureKind, JobOutput, MediaId, Quality, QueueCommand,
-        QueueEvent, SpeedPreset, X264Preset,
+        AudioMode, BatchSummary, CommandError, Container, EncoderTarget, EncoderUnavailable,
+        H264Profile, H264Settings, ItemState, JobFailureKind, JobOutput, MediaId,
+        OutputCapabilities, ProResAudio, ProResProfile, Quality, QueueCommand, QueueEvent,
+        SpeedPreset, VideoOutput, X264Preset,
     },
     media::MediaEngine,
     queue::{self, Queue},
@@ -28,7 +29,7 @@ async fn transcodes_batches_and_preserves_sources_and_existing_outputs() {
     fs::create_dir(&other_dir).unwrap();
     fs::create_dir(&output).unwrap();
 
-    fixture(&input, "640x360", "2", "aac");
+    fixture(&input, "640x360", "2", Some("aac"));
     let second = other_dir.join(input.file_name().unwrap());
     fs::copy(&input, &second).unwrap();
     let invalid = dir.path().join("inválido.mkv");
@@ -37,7 +38,10 @@ async fn transcodes_batches_and_preserves_sources_and_existing_outputs() {
     fs::write(&existing, "arquivo anterior").unwrap();
 
     let mut queue = queue::spawn(MediaEngine::default());
-    let capabilities = detect(&mut queue).await;
+    let capabilities = detect(&mut queue).await.h264;
+    assert!(capabilities.iter().any(|capability| {
+        capability.target == EncoderTarget::X264 && capability.support.is_ok()
+    }));
     let (first, second) =
         add_valid_pair_with_error(&mut queue, input.clone(), second, invalid).await;
     let base = cpu_settings(output.clone());
@@ -46,9 +50,12 @@ async fn transcodes_batches_and_preserves_sources_and_existing_outputs() {
         .send(QueueCommand::StartBatch {
             items: vec![first],
             settings: OutputSettings {
-                encoder: EncoderTarget::Vaapi {
-                    render_node: "/dev/dri/renderD9999".into(),
-                },
+                video: VideoOutput::H264(H264Settings {
+                    encoder: EncoderTarget::Vaapi {
+                        render_node: "/dev/dri/renderD9999".into(),
+                    },
+                    ..cpu_video()
+                }),
                 ..base.clone()
             },
         })
@@ -96,8 +103,11 @@ async fn transcodes_batches_and_preserves_sources_and_existing_outputs() {
             &queue,
             vec![first],
             OutputSettings {
-                container,
-                audio,
+                video: VideoOutput::H264(H264Settings {
+                    container,
+                    audio,
+                    ..cpu_video()
+                }),
                 ..base.clone()
             },
         )
@@ -125,9 +135,12 @@ async fn transcodes_batches_and_preserves_sources_and_existing_outputs() {
             &queue,
             vec![first],
             OutputSettings {
-                encoder: target.clone(),
-                preset,
-                profile: options.profiles[0],
+                video: VideoOutput::H264(H264Settings {
+                    encoder: target.clone(),
+                    preset,
+                    profile: options.profiles[0],
+                    ..cpu_video()
+                }),
                 ..base.clone()
             },
         )
@@ -156,7 +169,7 @@ async fn handles_runtime_failure_audio_copy_and_cancellation() {
     detect(&mut queue).await;
 
     let incompatible = dir.path().join("audio-wma.mkv");
-    fixture(&incompatible, "640x360", "1", "wmav2");
+    fixture(&incompatible, "640x360", "1", Some("wmav2"));
     let id = add_and_probe(&mut queue, incompatible.clone()).await;
     let settings = cpu_settings(output.clone());
     start(&queue, vec![id], settings.clone()).await;
@@ -169,7 +182,10 @@ async fn handles_runtime_failure_audio_copy_and_cancellation() {
         &queue,
         vec![id],
         OutputSettings {
-            audio: AudioMode::Aac192,
+            video: VideoOutput::H264(H264Settings {
+                audio: AudioMode::Aac192,
+                ..cpu_video()
+            }),
             ..settings.clone()
         },
     )
@@ -185,7 +201,7 @@ async fn handles_runtime_failure_audio_copy_and_cancellation() {
     assert_eq!(fs::read_dir(&output).unwrap().count(), 0);
 
     let long = dir.path().join("lote longo.mkv");
-    fixture(&long, "1280x720", "14", "aac");
+    fixture(&long, "1280x720", "14", Some("aac"));
     let one = add_and_probe(&mut queue, long.clone()).await;
     let two = add_and_probe(&mut queue, long.clone()).await;
     let three = add_and_probe(&mut queue, long).await;
@@ -193,7 +209,10 @@ async fn handles_runtime_failure_audio_copy_and_cancellation() {
         &queue,
         vec![one, two, three],
         OutputSettings {
-            preset: SpeedPreset::X264(X264Preset::Veryslow),
+            video: VideoOutput::H264(H264Settings {
+                preset: SpeedPreset::X264(X264Preset::Veryslow),
+                ..cpu_video()
+            }),
             ..settings
         },
     )
@@ -235,20 +254,220 @@ async fn reports_missing_ffmpeg_without_starting_a_batch() {
     }
 }
 
-fn fixture(path: &Path, size: &str, seconds: &str, codec: &str) {
-    let output = Command::new("ffmpeg")
-        .args([
-            "-v",
-            "error",
-            "-nostdin",
-            "-f",
-            "lavfi",
-            "-i",
-            &format!("testsrc2=s={size}:r=30"),
+#[tokio::test]
+#[ignore = "requer ffmpeg, ffprobe e prores_ks no PATH"]
+async fn transcodes_prores_profiles_and_recovers_from_audio_copy() {
+    let dir = TempDir::new().unwrap();
+    let input = dir.path().join("Cena de teste.mkv");
+    let silent = dir.path().join("sem áudio.mkv");
+    let incompatible = dir.path().join("áudio TTA.mkv");
+    let output = dir.path().join("destino");
+    fs::create_dir(&output).unwrap();
+    fixture(&input, "640x360", "1", Some("aac"));
+    fixture(&silent, "640x360", "1", None);
+    fixture(&incompatible, "640x360", "1", Some("tta"));
+    let existing = output.join("Cena de teste-prores.mov");
+    fs::write(&existing, b"arquivo anterior").unwrap();
+
+    let mut queue = queue::spawn(MediaEngine::default());
+    assert_eq!(detect(&mut queue).await.prores.unwrap(), ProResProfile::ALL);
+    let scene = add_and_probe(&mut queue, input.clone()).await;
+    let silent = add_and_probe(&mut queue, silent).await;
+    let tta = add_and_probe(&mut queue, incompatible).await;
+    let profile_settings = |profile, audio| OutputSettings {
+        video: VideoOutput::ProRes { profile, audio },
+        destination: output.clone(),
+    };
+
+    for (profile, name, id, audio, expected_audio) in [
+        (
+            ProResProfile::Proxy,
+            "Proxy",
+            scene,
+            ProResAudio::Pcm24,
+            Some("pcm_s24le"),
+        ),
+        (
+            ProResProfile::Lt,
+            "LT",
+            scene,
+            ProResAudio::Copy,
+            Some("aac"),
+        ),
+        (
+            ProResProfile::Standard,
+            "Standard",
+            silent,
+            ProResAudio::Pcm24,
+            None,
+        ),
+        (
+            ProResProfile::Hq,
+            "HQ",
+            scene,
+            ProResAudio::Pcm24,
+            Some("pcm_s24le"),
+        ),
+    ] {
+        start(&queue, vec![id], profile_settings(profile, audio)).await;
+        let (summary, outputs, _, progress) = finished(&mut queue).await;
+        assert_eq!(summary.succeeded, 1);
+        assert!(progress > 0);
+        assert_prores(&outputs[0], name, expected_audio);
+    }
+    assert!(input.exists());
+    assert!(output.join("Cena de teste-prores-2.mov").exists());
+    assert_eq!(fs::read(&existing).unwrap(), b"arquivo anterior");
+
+    start(
+        &queue,
+        vec![tta],
+        profile_settings(ProResProfile::Standard, ProResAudio::Copy),
+    )
+    .await;
+    assert_eq!(
+        failed(&mut queue).await,
+        JobFailureKind::AudioCopyIncompatible
+    );
+    start(
+        &queue,
+        vec![tta],
+        profile_settings(ProResProfile::Standard, ProResAudio::Pcm24),
+    )
+    .await;
+    let (summary, outputs, _, _) = finished(&mut queue).await;
+    assert_eq!(summary.succeeded, 1);
+    assert_prores(&outputs[0], "Standard", Some("pcm_s24le"));
+    assert_no_temporaries(&output);
+
+    let cancelled_dir = dir.path().join("cancelado");
+    fs::create_dir(&cancelled_dir).unwrap();
+    let long = dir.path().join("lote longo.mkv");
+    fixture(&long, "1280x720", "12", None);
+    let first = add_and_probe(&mut queue, long.clone()).await;
+    let second = add_and_probe(&mut queue, long).await;
+    start(
+        &queue,
+        vec![first, second],
+        OutputSettings {
+            destination: cancelled_dir.clone(),
+            ..profile_settings(ProResProfile::Hq, ProResAudio::Pcm24)
+        },
+    )
+    .await;
+    loop {
+        if let QueueEvent::ItemProgress { batch_id, .. } = next(&mut queue).await {
+            queue
+                .commands
+                .send(QueueCommand::CancelBatch { batch_id })
+                .await
+                .unwrap();
+            break;
+        }
+    }
+    let (summary, _, _, _) = finished(&mut queue).await;
+    assert_eq!(summary.cancelled, 2);
+    assert_eq!(fs::read_dir(cancelled_dir).unwrap().count(), 0);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+#[ignore = "requer ffmpeg/ffprobe para criar e sondar a entrada"]
+async fn rejects_prores_when_ffmpeg_has_no_compatible_encoder() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = TempDir::new().unwrap();
+    let ffmpeg = dir.path().join("ffmpeg-sem-prores");
+    fs::write(&ffmpeg, "#!/bin/sh\nprintf '%s\\n' ' V..... prores_aw'\n").unwrap();
+    fs::set_permissions(&ffmpeg, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut queue = queue::spawn(MediaEngine::new(ffmpeg, "ffprobe"));
+    assert_eq!(
+        detect(&mut queue).await.prores,
+        Err(EncoderUnavailable::MissingFromFfmpeg)
+    );
+    let input = dir.path().join("entrada.mkv");
+    fixture(&input, "640x360", "1", None);
+    let id = add_and_probe(&mut queue, input).await;
+    start(
+        &queue,
+        vec![id],
+        OutputSettings {
+            video: VideoOutput::ProRes {
+                profile: ProResProfile::Standard,
+                audio: ProResAudio::Pcm24,
+            },
+            destination: dir.path().into(),
+        },
+    )
+    .await;
+    assert!(matches!(
+        next(&mut queue).await,
+        QueueEvent::Rejected(CommandError::ProResUnavailable)
+    ));
+}
+
+fn assert_prores(job: &JobOutput, profile: &str, audio: Option<&str>) {
+    let output = Command::new("ffprobe")
+        .args(["-v", "error", "-of", "json", "-show_entries",
+            "stream=codec_name,codec_type,profile,pix_fmt,width,height,bits_per_sample:format_tags=major_brand"])
+        .arg(&job.path)
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let probe: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let streams = probe["streams"].as_array().unwrap();
+    assert_eq!(probe["format"]["tags"]["major_brand"], "qt  ");
+    assert_eq!(job.path.extension().unwrap(), "mov");
+    let video = &streams[0];
+    assert_eq!(video["codec_name"], "prores");
+    assert_eq!(video["profile"], profile);
+    assert_eq!(video["pix_fmt"], "yuv422p10le");
+    assert_eq!(
+        (video["width"].as_u64(), video["height"].as_u64()),
+        (Some(640), Some(360))
+    );
+    assert_eq!(streams.len(), 1 + usize::from(audio.is_some()));
+    if let Some(codec) = audio {
+        assert_eq!(streams[1]["codec_name"], codec);
+        if codec == "pcm_s24le" {
+            assert_eq!(streams[1]["bits_per_sample"], 24);
+        }
+    }
+}
+
+fn assert_no_temporaries(output: &Path) {
+    assert!(fs::read_dir(output).unwrap().all(|entry| {
+        !entry
+            .unwrap()
+            .file_name()
+            .to_string_lossy()
+            .starts_with(".velox-")
+    }));
+}
+
+fn fixture(path: &Path, size: &str, seconds: &str, codec: Option<&str>) {
+    let mut command = Command::new("ffmpeg");
+    command.args([
+        "-v",
+        "error",
+        "-nostdin",
+        "-f",
+        "lavfi",
+        "-i",
+        &format!("testsrc2=s={size}:r=30"),
+    ]);
+    if let Some(codec) = codec {
+        command.args([
             "-f",
             "lavfi",
             "-i",
             "sine=f=1000:sample_rate=48000",
+            "-c:a",
+            codec,
+        ]);
+    }
+    let output = command
+        .args([
             "-t",
             seconds,
             "-c:v",
@@ -257,8 +476,6 @@ fn fixture(path: &Path, size: &str, seconds: &str, codec: &str) {
             "6",
             "-threads:v",
             "2",
-            "-c:a",
-            codec,
         ])
         .arg(path)
         .output()
@@ -272,13 +489,19 @@ fn fixture(path: &Path, size: &str, seconds: &str, codec: &str) {
 
 fn cpu_settings(destination: PathBuf) -> OutputSettings {
     OutputSettings {
+        video: VideoOutput::H264(cpu_video()),
+        destination,
+    }
+}
+
+fn cpu_video() -> H264Settings {
+    H264Settings {
         encoder: EncoderTarget::X264,
         quality: Quality::DEFAULT,
         preset: SpeedPreset::X264(X264Preset::Medium),
         profile: H264Profile::High,
         audio: AudioMode::Copy,
         container: Container::Mp4,
-        destination,
     }
 }
 
@@ -289,7 +512,7 @@ async fn next(queue: &mut Queue) -> QueueEvent {
         .expect("fila encerrada")
 }
 
-async fn detect(queue: &mut Queue) -> Vec<EncoderCapability> {
+async fn detect(queue: &mut Queue) -> OutputCapabilities {
     queue
         .commands
         .send(QueueCommand::DetectEncoders)
@@ -298,7 +521,7 @@ async fn detect(queue: &mut Queue) -> Vec<EncoderCapability> {
     let QueueEvent::EncoderCapabilities(capabilities) = next(queue).await else {
         panic!("lista de encoders esperada")
     };
-    for capability in &capabilities {
+    for capability in &capabilities.h264 {
         eprintln!(
             "{}: {:?}",
             if capability.support.is_ok() {
@@ -309,11 +532,6 @@ async fn detect(queue: &mut Queue) -> Vec<EncoderCapability> {
             capability.target
         );
     }
-    assert!(
-        capabilities.iter().any(
-            |capability| capability.target == EncoderTarget::X264 && capability.support.is_ok()
-        )
-    );
     capabilities
 }
 

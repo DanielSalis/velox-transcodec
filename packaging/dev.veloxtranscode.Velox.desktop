@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Velox Transcode
-Comment=Converta vídeos em lote para H.264
+Comment=Converta vídeos em lote para H.264 e Apple ProRes
 Exec=velox-transcode %F
 Icon=dev.veloxtranscode.Velox
 Terminal=false

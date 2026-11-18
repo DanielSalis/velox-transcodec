@@ -14,6 +14,12 @@ pub struct EncoderCapability {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutputCapabilities {
+    pub h264: Vec<EncoderCapability>,
+    pub prores: Result<Vec<ProResProfile>, EncoderUnavailable>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EncoderUnavailable {
     MissingFromFfmpeg,
     ProbeFailed { detail: String },
@@ -91,10 +97,28 @@ pub enum H264Profile {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProResProfile {
+    Proxy,
+    Lt,
+    Standard,
+    Hq,
+}
+
+impl ProResProfile {
+    pub const ALL: [Self; 4] = [Self::Proxy, Self::Lt, Self::Standard, Self::Hq];
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AudioMode {
     Copy,
     Aac192,
     Aac320,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProResAudio {
+    Pcm24,
+    Copy,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,13 +129,27 @@ pub enum Container {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct OutputSettings {
+pub struct H264Settings {
     pub encoder: EncoderTarget,
     pub quality: Quality,
     pub preset: SpeedPreset,
     pub profile: H264Profile,
     pub audio: AudioMode,
     pub container: Container,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VideoOutput {
+    H264(H264Settings),
+    ProRes {
+        profile: ProResProfile,
+        audio: ProResAudio,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OutputSettings {
+    pub video: VideoOutput,
     pub destination: PathBuf,
 }
 

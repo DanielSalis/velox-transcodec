@@ -3,18 +3,20 @@ use tokio::process::Command;
 
 use crate::domain::{
     EncoderCapability, EncoderOptions, EncoderTarget, EncoderUnavailable, H264Profile, JobFailure,
-    JobFailureKind, NvencPreset, Quality, QualityMode, SpeedPreset, X264Preset,
+    JobFailureKind, NvencPreset, OutputCapabilities, ProResProfile, Quality, QualityMode,
+    SpeedPreset, X264Preset,
 };
 
 use super::{MediaEngine, failure, process};
 
 const PAD: &str = "pad=ceil(iw/2)*2:ceil(ih/2)*2";
 const VAAPI_FILTER: &str = "pad=ceil(iw/2)*2:ceil(ih/2)*2,format=nv12,hwupload";
+const PRORES_ENCODER: &str = "prores_ks";
 
 impl MediaEngine {
     /// Ordem de preferência: nós VA-API, índices NVENC e x264. Apenas `support.is_ok()`
     /// identifica uma opção disponível para seleção.
-    pub async fn detect_encoders(&self) -> Result<Vec<EncoderCapability>, JobFailure> {
+    pub async fn detect_encoders(&self) -> Result<OutputCapabilities, JobFailure> {
         let listing = process::capture(
             process::command(&self.ffmpeg).args(["-hide_banner", "-encoders"]),
             10,
@@ -62,7 +64,15 @@ impl MediaEngine {
             };
             capabilities.push(EncoderCapability { target, support });
         }
-        Ok(capabilities)
+        let prores = if present(PRORES_ENCODER) {
+            self.probe_prores().await
+        } else {
+            Err(EncoderUnavailable::MissingFromFfmpeg)
+        };
+        Ok(OutputCapabilities {
+            h264: capabilities,
+            prores,
+        })
     }
 
     async fn nvenc_indices(&self) -> Vec<u32> {
@@ -145,6 +155,37 @@ impl MediaEngine {
         preset: SpeedPreset,
         profile: H264Profile,
     ) -> Result<(), String> {
+        let mut command = self.smoke_command();
+        add_global_video_args(&mut command, target);
+        add_smoke_source(&mut command);
+        add_video_args(&mut command, target, preset, profile, Quality::DEFAULT, 1);
+        finish_smoke_encode(command).await
+    }
+
+    async fn probe_prores(&self) -> Result<Vec<ProResProfile>, EncoderUnavailable> {
+        let mut profiles = Vec::new();
+        let mut diagnostic = None;
+        for profile in ProResProfile::ALL {
+            let mut command = self.smoke_command();
+            add_smoke_source(&mut command);
+            add_prores_args(&mut command, profile, 1);
+            match finish_smoke_encode(command).await {
+                Ok(()) => profiles.push(profile),
+                Err(error) => {
+                    diagnostic.get_or_insert(error);
+                }
+            }
+        }
+        if profiles.is_empty() {
+            Err(EncoderUnavailable::ProbeFailed {
+                detail: diagnostic.unwrap_or_default(),
+            })
+        } else {
+            Ok(profiles)
+        }
+    }
+
+    fn smoke_command(&self) -> Command {
         let mut command = process::command(&self.ffmpeg);
         command.args([
             "-hide_banner",
@@ -154,25 +195,30 @@ impl MediaEngine {
             "-filter_threads",
             "1",
         ]);
-        add_global_video_args(&mut command, target);
-        command.args([
-            "-f",
-            "lavfi",
-            "-i",
-            "color=s=640x360:r=24",
-            "-frames:v",
-            "4",
-        ]);
-        add_video_args(&mut command, target, preset, profile, Quality::DEFAULT, 1);
-        command.args(["-f", "null", "-"]);
-        let output = process::capture(&mut command, 8, 1024, JobFailureKind::EncoderUnavailable)
-            .await
-            .map_err(|error| error.detail)?;
-        if output.status.success() {
-            Ok(())
-        } else {
-            Err(process::diagnostic_or_status(output.status, output.stderr))
-        }
+        command
+    }
+}
+
+fn add_smoke_source(command: &mut Command) {
+    command.args([
+        "-f",
+        "lavfi",
+        "-i",
+        "color=s=640x360:r=24",
+        "-frames:v",
+        "4",
+    ]);
+}
+
+async fn finish_smoke_encode(mut command: Command) -> Result<(), String> {
+    command.args(["-f", "null", "-"]);
+    let output = process::capture(&mut command, 8, 1024, JobFailureKind::EncoderUnavailable)
+        .await
+        .map_err(|error| error.detail)?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(process::diagnostic_or_status(output.status, output.stderr))
     }
 }
 
@@ -267,6 +313,27 @@ pub(super) fn add_global_video_args(command: &mut Command, target: &EncoderTarge
     if let EncoderTarget::Vaapi { render_node } = target {
         command.arg("-vaapi_device").arg(render_node);
     }
+}
+
+pub(super) fn add_prores_args(command: &mut Command, profile: ProResProfile, cpu_threads: usize) {
+    let profile = match profile {
+        ProResProfile::Proxy => "proxy",
+        ProResProfile::Lt => "lt",
+        ProResProfile::Standard => "standard",
+        ProResProfile::Hq => "hq",
+    };
+    command.args([
+        "-c:v",
+        PRORES_ENCODER,
+        "-profile:v",
+        profile,
+        "-vf",
+        "pad=ceil(iw/2)*2:ih",
+        "-pix_fmt",
+        "yuv422p10le",
+        "-threads:v",
+        &cpu_threads.to_string(),
+    ]);
 }
 
 pub(super) fn add_video_args(

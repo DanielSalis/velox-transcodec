@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Velox Transcode, conversor nativo de vídeo em lote para Fedora. Experimente a fila, os controles H.264 e a detecção de codecs.">
+  <meta name="description" content="Velox Transcode, conversor nativo de vídeo em lote para Fedora com saída H.264 e Apple ProRes.">
   <meta name="theme-color" content="#0f1012">
   <title>Velox Transcode | Vídeo em lote para Fedora</title>
   <link rel="icon" href="assets/velox-transcode.svg" type="image/svg+xml">
@@ -57,7 +57,7 @@
   <main>
   <section class="container hero" id="visao-geral" tabindex="-1" aria-labelledby="hero-title">
     <h1 id="hero-title"><span>Vídeo em lote.</span> <span>No seu Fedora.</span></h1>
-    <p class="hero-description">Inspecione os arquivos, ajuste a saída H.264 e acompanhe cada conversão em uma janela nativa.</p>
+    <p class="hero-description">Inspecione os arquivos e converta em lote para H.264 ou Apple ProRes em uma janela nativa.</p>
     <div class="hero-actions">
       <a class="button primary" href="#download">Ver instalação
         <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg>
@@ -70,7 +70,7 @@
     <ul class="capabilities" aria-label="Capacidades do aplicativo">
       <li><svg class="icon" aria-hidden="true"><use href="#i-chip"/></svg> VA-API / NVENC</li>
       <li><svg class="icon" aria-hidden="true"><use href="#i-stack"/></svg> Até 2 jobs x264</li>
-      <li><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg> Saída H.264</li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg> H.264 e ProRes</li>
     </ul>
 
     <section class="app-window" id="demonstracao" data-demo tabindex="-1" aria-labelledby="mockup-title">
@@ -358,16 +358,16 @@
       </header>
       <dl class="faq-grid">
         <div id="faq-requisitos" tabindex="-1">
-          <dt>O que preciso no Fedora?</dt><dd>Para compilar, use Rust 1.95 ou mais recente e Qt 6. Para converter, instale FFmpeg e ffprobe com suporte a H.264.</dd>
+          <dt>O que preciso no Fedora?</dt><dd>Para compilar, use Rust 1.95 ou mais recente e Qt 6. A conversão usa FFmpeg e ffprobe. Para ProRes, o FFmpeg precisa incluir <code>prores_ks</code>.</dd>
         </div>
         <div>
-          <dt>Preciso de uma GPU?</dt><dd>O Velox testa VA-API e NVENC no host. Com libx264 disponível, você pode converter pela CPU.</dd>
+          <dt>Preciso de uma GPU?</dt><dd>O Velox testa VA-API e NVENC para H.264. Na CPU, use libx264 para H.264 ou ProRes para preparar arquivos de edição.</dd>
         </div>
         <div>
-          <dt>Quais formatos posso abrir?</dt><dd>Você pode abrir MP4, MKV, WebM e MOV, conforme os decoders incluídos no seu FFmpeg.</dd>
+          <dt>Quais formatos posso abrir e gerar?</dt><dd>Abra MP4, MKV, WebM e MOV conforme o FFmpeg instalado. Exporte H.264 em MP4, MKV ou MOV e ProRes 422 em MOV.</dd>
         </div>
         <div>
-          <dt>Posso manter o áudio original?</dt><dd>Use Copy se o container aceitar o codec. Se houver incompatibilidade, selecione AAC a 192 ou 320 kbps.</dd>
+          <dt>Posso manter o áudio original?</dt><dd>Copie o áudio se o contêiner aceitar o codec. Para converter o áudio, use AAC com H.264 ou PCM de 24 bits com ProRes.</dd>
         </div>
         <div>
           <dt>O que acontece se eu cancelar?</dt><dd>A fila remove os temporários da conversão interrompida e conserva os arquivos já publicados.</dd>

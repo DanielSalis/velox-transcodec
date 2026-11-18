@@ -3,10 +3,11 @@ use std::{collections::HashMap, path::PathBuf, rc::Rc, time::Duration};
 use slint::{Model, ModelRc, SharedString, VecModel};
 use tokio::sync::mpsc;
 use velox_transcode::domain::{
-    AudioMode, BatchId, BatchProgress, BatchSummary, CommandError, Container, EncoderCapability,
-    EncoderOptions, EncoderTarget, H264Profile, ItemState, JobFailure, JobFailureKind, JobOutput,
-    MediaId, MediaInfo, NvencPreset, OutputSettings, ProgressSnapshot, Quality, QualityMode,
-    QueueCommand, QueueEvent, SpeedPreset, X264Preset,
+    AudioMode, BatchId, BatchProgress, BatchSummary, CommandError, Container, EncoderOptions,
+    EncoderTarget, EncoderUnavailable, H264Profile, H264Settings, ItemState, JobFailure,
+    JobFailureKind, JobOutput, MediaId, MediaInfo, NvencPreset, OutputCapabilities, OutputSettings,
+    ProResAudio, ProResProfile, ProgressSnapshot, Quality, QualityMode, QueueCommand, QueueEvent,
+    SpeedPreset, VideoOutput, X264Preset,
 };
 
 use crate::{DesktopWindow, FileRowView};
@@ -110,6 +111,7 @@ pub(super) struct Desktop {
     index: HashMap<MediaId, usize>,
     selected: Option<usize>,
     encoders: Vec<Encoder>,
+    prores_profiles: Vec<ProResProfile>,
     destination: Option<PathBuf>,
     run: RunState,
     closing: bool,
@@ -127,6 +129,7 @@ impl Desktop {
             index: HashMap::new(),
             selected: None,
             encoders: Vec::new(),
+            prores_profiles: Vec::new(),
             destination: None,
             run: RunState::Idle,
             closing: false,
@@ -153,14 +156,22 @@ impl Desktop {
     pub(super) fn detect(&mut self, window: &DesktopWindow) {
         if self.send(window, QueueCommand::DetectEncoders) {
             self.encoders.clear();
+            self.prores_profiles.clear();
             window.set_encoders(model(Vec::new()));
             window.set_presets(model(Vec::new()));
             window.set_profiles(model(Vec::new()));
+            window.set_prores_profiles(model(Vec::new()));
             window.set_quality_label("Qualidade".into());
             window.set_detecting(true);
             window.set_encoder_message("".into());
+            window.set_prores_message("".into());
             self.refresh_controls(window);
         }
+    }
+
+    pub(super) fn select_codec(&self, window: &DesktopWindow) {
+        window.set_queue_message("".into());
+        self.refresh_controls(window);
     }
 
     pub(super) fn select_encoder(&self, window: &DesktopWindow, index: i32) {
@@ -244,9 +255,15 @@ impl Desktop {
             self.refresh_row(window, index);
             self.refresh_controls(window);
         }
-        window.set_audio_index(1);
+        let label = if window.get_prores() {
+            window.set_prores_audio_index(0);
+            "PCM 24 bits"
+        } else {
+            window.set_audio_index(1);
+            "AAC 192 kbps"
+        };
         window.set_queue_message(
-            "AAC 192 kbps selecionado. Inicie a fila para tentar novamente.".into(),
+            format!("{label} selecionado. Inicie a fila para tentar novamente.").into(),
         );
     }
 
@@ -297,22 +314,33 @@ impl Desktop {
     }
 
     fn settings(&self, window: &DesktopWindow) -> Option<OutputSettings> {
-        let encoder = at(&self.encoders, window.get_encoder_index())?;
-        Some(OutputSettings {
-            encoder: encoder.target.clone(),
-            quality: Quality::new(u8::try_from(window.get_quality()).ok()?)?,
-            preset: *at(&encoder.options.presets, window.get_preset_index())?,
-            profile: *at(&encoder.options.profiles, window.get_profile_index())?,
-            audio: *at(
-                &[AudioMode::Copy, AudioMode::Aac192, AudioMode::Aac320],
-                window.get_audio_index(),
-            )?,
-            container: *at(
-                &[Container::Mp4, Container::Mkv, Container::Mov],
-                window.get_container_index(),
-            )?,
-            destination: self.destination.clone()?,
-        })
+        let destination = self.destination.clone()?;
+        let video = if window.get_prores() {
+            VideoOutput::ProRes {
+                profile: *at(&self.prores_profiles, window.get_prores_profile_index())?,
+                audio: *at(
+                    &[ProResAudio::Pcm24, ProResAudio::Copy],
+                    window.get_prores_audio_index(),
+                )?,
+            }
+        } else {
+            let encoder = at(&self.encoders, window.get_encoder_index())?;
+            VideoOutput::H264(H264Settings {
+                encoder: encoder.target.clone(),
+                quality: Quality::new(u8::try_from(window.get_quality()).ok()?)?,
+                preset: *at(&encoder.options.presets, window.get_preset_index())?,
+                profile: *at(&encoder.options.profiles, window.get_profile_index())?,
+                audio: *at(
+                    &[AudioMode::Copy, AudioMode::Aac192, AudioMode::Aac320],
+                    window.get_audio_index(),
+                )?,
+                container: *at(
+                    &[Container::Mp4, Container::Mkv, Container::Mov],
+                    window.get_container_index(),
+                )?,
+            })
+        };
+        Some(OutputSettings { video, destination })
     }
 
     fn send(&self, window: &DesktopWindow, command: QueueCommand) -> bool {
@@ -382,9 +410,9 @@ impl Desktop {
             QueueEvent::EncoderDetectionFailed(error) => {
                 eprintln!("Falha na sondagem dos encoders: {}", error.detail);
                 window.set_detecting(false);
-                window.set_encoder_message(
-                    "O FFmpeg não pôde verificar os encoders. Confira a instalação.".into(),
-                );
+                let message = "O FFmpeg não pôde verificar os encoders. Confira a instalação.";
+                window.set_encoder_message(message.into());
+                window.set_prores_message(message.into());
             }
             QueueEvent::BatchStarted { batch_id, .. } => {
                 self.run = RunState::Active {
@@ -438,9 +466,9 @@ impl Desktop {
         }
     }
 
-    fn set_encoders(&mut self, window: &DesktopWindow, capabilities: Vec<EncoderCapability>) {
+    fn set_encoders(&mut self, window: &DesktopWindow, capabilities: OutputCapabilities) {
         let mut available = Vec::new();
-        for capability in capabilities {
+        for capability in capabilities.h264 {
             match capability.support {
                 Ok(options) => available.push(Encoder {
                     target: capability.target,
@@ -467,6 +495,40 @@ impl Desktop {
             }
             .into(),
         );
+
+        let (profiles, message) = match capabilities.prores {
+            Ok(profiles) => (profiles, ""),
+            Err(EncoderUnavailable::MissingFromFfmpeg) => (
+                Vec::new(),
+                "O FFmpeg instalado não inclui o encoder ProRes (prores_ks).",
+            ),
+            Err(EncoderUnavailable::ProbeFailed { detail }) => {
+                eprintln!("Encoder ProRes indisponível: {detail}");
+                (
+                    Vec::new(),
+                    "O FFmpeg encontrou prores_ks, mas falhou ao testar a codificação ProRes.",
+                )
+            }
+        };
+        let default = profiles
+            .iter()
+            .position(|profile| *profile == ProResProfile::Standard);
+        window.set_prores_profiles(model(
+            profiles
+                .iter()
+                .map(|profile| {
+                    SharedString::from(match profile {
+                        ProResProfile::Proxy => "422 Proxy",
+                        ProResProfile::Lt => "422 LT",
+                        ProResProfile::Standard => "422",
+                        ProResProfile::Hq => "422 HQ",
+                    })
+                })
+                .collect(),
+        ));
+        window.set_prores_profile_index(default.unwrap_or_default() as i32);
+        window.set_prores_message(message.into());
+        self.prores_profiles = profiles;
     }
 
     fn change_item(&mut self, window: &DesktopWindow, media_id: MediaId, change: ItemState) {
@@ -545,12 +607,7 @@ impl Desktop {
         let enabled = match self.run {
             RunState::Starting => false,
             RunState::Active { cancelling, .. } => !cancelling,
-            _ => {
-                self.connected
-                    && ready > 0
-                    && !self.encoders.is_empty()
-                    && self.destination.is_some()
-            }
+            _ => self.connected && ready > 0 && self.settings(window).is_some(),
         };
         window.set_queue_action_enabled(enabled);
         let status = match self.run {
@@ -738,7 +795,7 @@ fn preset_label(preset: SpeedPreset) -> &'static str {
 
 fn failure_message(error: &JobFailure) -> String {
     if error.kind == JobFailureKind::AudioCopyIncompatible {
-        return "O áudio original é incompatível com este container. Escolha AAC para tentar novamente.".into();
+        return "O áudio original é incompatível com este container. Escolha outra opção de áudio para tentar novamente.".into();
     }
     let title = match error.kind {
         JobFailureKind::DependencyUnavailable => "Ferramenta de mídia indisponível",
@@ -771,7 +828,13 @@ fn command_message(error: &CommandError) -> &'static str {
         CommandError::UnsupportedEncoderSettings { .. } => {
             "Escolha um perfil e preset disponíveis para o encoder."
         }
-        CommandError::AudioCopyIncompatible { .. } => "Escolha AAC para converter este áudio.",
+        CommandError::ProResUnavailable => {
+            "O encoder ProRes está indisponível. Verifique os encoders do FFmpeg."
+        }
+        CommandError::UnsupportedProResProfile => "Escolha um perfil ProRes disponível.",
+        CommandError::AudioCopyIncompatible { .. } => {
+            "Escolha outra opção para converter este áudio."
+        }
         CommandError::DestinationUnavailable { .. } => {
             "A pasta de destino está indisponível. Escolha outra pasta."
         }
