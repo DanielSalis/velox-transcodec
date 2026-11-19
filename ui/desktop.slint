@@ -1,4 +1,4 @@
-import { ListView } from "std-widgets.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
 import { Theme, Label, Heading, Rule, Action, Choice, Range, Meter } from "controls.slint";
 import { OutputHelp } from "output-help.slint";
 import { WindowTitleBar } from "window-title-bar.slint";
@@ -242,11 +242,34 @@ export component DesktopWindow inherits Window {
                     }
 
                     Rectangle {
-                        height: root.files.length == 0 ? 68px : 42px;
+                        height: root.files.length == 0 ? 84px : 56px;
                         background: Theme.surface;
                         border-radius: Theme.radius;
-                        border-color: drop.current-action == DragAction.copy ? Theme.accent : Theme.control-border;
-                        border-width: 1px;
+                        Path {
+                            private property <float> inset: 0.5;
+                            private property <float> right: self.width / 1px - inset;
+                            private property <float> bottom: self.height / 1px - inset;
+                            private property <float> radius: Theme.radius / 1px - inset;
+
+                            x: 0px;
+                            y: 0px;
+                            width: parent.width;
+                            height: parent.height;
+                            fit: preserve;
+                            stroke: drop.current-action == DragAction.copy ? Theme.accent : Theme.control-border;
+                            stroke-width: 1px;
+                            stroke-dash-array: [6px, 4px];
+                            MoveTo { x: parent.inset + parent.radius; y: parent.inset; }
+                            LineTo { x: parent.right - parent.radius; y: parent.inset; }
+                            ArcTo { x: parent.right; y: parent.inset + parent.radius; radius-x: parent.radius; radius-y: parent.radius; sweep: true; }
+                            LineTo { x: parent.right; y: parent.bottom - parent.radius; }
+                            ArcTo { x: parent.right - parent.radius; y: parent.bottom; radius-x: parent.radius; radius-y: parent.radius; sweep: true; }
+                            LineTo { x: parent.inset + parent.radius; y: parent.bottom; }
+                            ArcTo { x: parent.inset; y: parent.bottom - parent.radius; radius-x: parent.radius; radius-y: parent.radius; sweep: true; }
+                            LineTo { x: parent.inset; y: parent.inset + parent.radius; }
+                            ArcTo { x: parent.inset + parent.radius; y: parent.inset; radius-x: parent.radius; radius-y: parent.radius; sweep: true; }
+                            Close {}
+                        }
                         Label {
                             text: root.picking ? "Aguardando o seletor do sistema…" : "Arraste vídeos para cá";
                             color: drop.current-action == DragAction.copy ? Theme.accent : Theme.secondary;
@@ -331,8 +354,11 @@ export component DesktopWindow inherits Window {
                 horizontal-stretch: 0;
                 background: Theme.surface;
                 VerticalLayout {
-                    padding: 17px;
-                    spacing: 9px;
+                    padding-top: 16px;
+                    padding-bottom: 12px;
+                    padding-left: 17px;
+                    padding-right: 17px;
+                    spacing: 8px;
                     HorizontalLayout {
                         height: 36px;
                         spacing: 8px;
@@ -347,77 +373,133 @@ export component DesktopWindow inherits Window {
                         }
                     }
 
-                    if !root.prores: ChoiceField {
-                        label: "Encoder";
-                        options: root.encoders;
-                        enabled: !root.busy && !root.detecting;
-                        current-index <=> root.encoder-index;
-                        changed-index(index) => { root.encoder-changed(index); }
-                    }
-                    if root.prores: VerticalLayout {
-                        spacing: 4px;
-                        Label { text: "Encoder"; color: Theme.muted; font-size: 12px; }
-                        Label { text: "ProRes · CPU"; }
-                    }
-                    if root.detecting: Label { text: "Verificando os encoders…"; color: Theme.muted; font-size: 12px; }
-                    if root.output-message != "" && !root.detecting: VerticalLayout {
-                        spacing: 6px;
-                        Label { text: root.output-message; color: Theme.muted; wrap: word-wrap; font-size: 12px; min-width: 0px; }
-                        Action { label: "Verificar encoders"; enabled: !root.busy; clicked => { root.detect-encoders(); } }
-                    }
+                    settings-scroll := ScrollView {
+                        horizontal-scrollbar-policy: always-off;
+                        content-width: self.visible-width;
+                        content-height: settings.min-height;
 
-                    if !root.prores: VerticalLayout {
-                        spacing: 2px;
-                        vertical-stretch: 0;
-                        HorizontalLayout {
-                            Label { text: "Qualidade do vídeo"; font-size: 13px; horizontal-stretch: 1; }
-                            Label {
-                                text: root.quality-code == "" ? "\{root.quality}" : "\{root.quality-code} \{root.quality}";
-                                color: Theme.accent;
-                                font-size: 13px;
+                        settings := VerticalLayout {
+                            width: settings-scroll.visible-width;
+                            height: self.min-height;
+                            spacing: 6px;
+
+                            if !root.prores: ChoiceField {
+                                label: "Encoder";
+                                options: root.encoders;
+                                enabled: !root.busy && !root.detecting;
+                                current-index <=> root.encoder-index;
+                                changed-index(index) => { root.encoder-changed(index); }
                             }
-                        }
-                        Range {
-                            label: root.quality-code == "" ? "Qualidade do vídeo" : "Qualidade do vídeo, " + root.quality-code;
-                            minimum: root.quality-minimum;
-                            maximum: root.quality-maximum;
-                            enabled: !root.busy && !root.detecting && root.encoders.length > 0;
-                            value <=> root.quality;
-                        }
-                        HorizontalLayout {
-                            Label { text: "Mais detalhes (\{root.quality-minimum})"; color: Theme.muted; font-size: 12px; }
-                            Rectangle { horizontal-stretch: 1; }
-                            Label { text: "Arquivo menor (\{root.quality-maximum})"; color: Theme.muted; font-size: 12px; }
-                        }
-                    }
+                            if root.prores: VerticalLayout {
+                                spacing: 4px;
+                                Label { text: "Encoder"; color: Theme.muted; font-size: 12px; }
+                                Label { text: "ProRes · CPU"; }
+                            }
+                            if root.detecting: Label { text: "Verificando os encoders…"; color: Theme.muted; font-size: 12px; }
+                            if root.output-message != "" && !root.detecting: VerticalLayout {
+                                spacing: 6px;
+                                Label { text: root.output-message; color: Theme.muted; wrap: word-wrap; font-size: 12px; min-width: 0px; }
+                                Action { label: "Verificar encoders"; enabled: !root.busy; clicked => { root.detect-encoders(); } }
+                            }
 
-                    if !root.prores: HorizontalLayout {
-                        spacing: 9px;
-                        ChoiceField {
-                            label: "Velocidade (preset)";
-                            options: root.presets;
-                            option-descriptions: root.preset-descriptions;
-                            menu-width: parent.width;
-                            enabled: !root.busy && !root.detecting && root.presets.length > 1;
-                            current-index <=> root.preset-index;
-                        }
-                        ChoiceField {
-                            label: "Perfil H.264";
-                            options: root.profiles;
-                            option-descriptions: root.profile-descriptions;
-                            menu-width: parent.width;
-                            align-menu-right: true;
-                            enabled: !root.busy && !root.detecting;
-                            current-index <=> root.profile-index;
+                            if !root.prores: VerticalLayout {
+                                spacing: 2px;
+                                vertical-stretch: 0;
+                                HorizontalLayout {
+                                    Label { text: "Qualidade do vídeo"; font-size: 13px; horizontal-stretch: 1; }
+                                    Label {
+                                        text: root.quality-code == "" ? "\{root.quality}" : "\{root.quality-code} \{root.quality}";
+                                        color: Theme.accent;
+                                        font-size: 13px;
+                                    }
+                                }
+                                Range {
+                                    label: root.quality-code == "" ? "Qualidade do vídeo" : "Qualidade do vídeo, " + root.quality-code;
+                                    minimum: root.quality-minimum;
+                                    maximum: root.quality-maximum;
+                                    enabled: !root.busy && !root.detecting && root.encoders.length > 0;
+                                    value <=> root.quality;
+                                }
+                                HorizontalLayout {
+                                    Label { text: "Mais detalhes (\{root.quality-minimum})"; color: Theme.muted; font-size: 12px; }
+                                    Rectangle { horizontal-stretch: 1; }
+                                    Label { text: "Arquivo menor (\{root.quality-maximum})"; color: Theme.muted; font-size: 12px; }
+                                }
+                            }
+
+                            if !root.prores: HorizontalLayout {
+                                padding-top: 20px;
+                                spacing: 9px;
+                                ChoiceField {
+                                    label: "Velocidade (preset)";
+                                    options: root.presets;
+                                    option-descriptions: root.preset-descriptions;
+                                    menu-width: parent.width;
+                                    enabled: !root.busy && !root.detecting && root.presets.length > 1;
+                                    current-index <=> root.preset-index;
+                                }
+                                ChoiceField {
+                                    label: "Perfil H.264";
+                                    options: root.profiles;
+                                    option-descriptions: root.profile-descriptions;
+                                    menu-width: parent.width;
+                                    align-menu-right: true;
+                                    enabled: !root.busy && !root.detecting;
+                                    current-index <=> root.profile-index;
+                                }
+                            }
+
+                            if !root.prores: HorizontalLayout {
+                                padding-top: 4px;
+                                spacing: 9px;
+                                ChoiceField {
+                                    label: "Áudio"; options: ["Copy", "AAC 192 kbps", "AAC 320 kbps"];
+                                    enabled: !root.busy;
+                                    current-index <=> root.audio-index;
+                                }
+                                ChoiceField {
+                                    label: "Container"; options: ["MP4", "MKV", "MOV"];
+                                    enabled: !root.busy;
+                                    current-index <=> root.container-index;
+                                }
+                            }
+
+                            if root.prores: ChoiceField {
+                                label: "Perfil ProRes"; options: root.prores-profiles;
+                                enabled: !root.busy && !root.detecting;
+                                current-index <=> root.prores-profile-index;
+                            }
+                            if root.prores: HorizontalLayout {
+                                spacing: 9px;
+                                ChoiceField {
+                                    label: "Áudio"; options: ["PCM 24 bits", "Copiar"];
+                                    enabled: !root.busy && !root.detecting && root.prores-profiles.length > 0;
+                                    current-index <=> root.prores-audio-index;
+                                }
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    Label { text: "Container"; color: Theme.muted; font-size: 12px; }
+                                    Label { text: "MOV"; min-height: 36px; }
+                                }
+                            }
+                            if root.prores: Label {
+                                text: "Formato para edição. O arquivo pode ficar maior.";
+                                color: Theme.muted;
+                                font-size: 12px;
+                                min-width: 0px;
+                                wrap: word-wrap;
+                            }
                         }
                     }
 
                     if !root.prores: HorizontalLayout {
                         alignment: end;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
                         Action {
                             private property <bool> is-open: root.help-open;
                             label: "Entenda os ajustes";
-                            min-height: 30px;
+                            min-height: 34px;
                             clicked => {
                                 root.help-anchor = self.absolute-position.y;
                                 root.help-open = true;
@@ -428,58 +510,19 @@ export component DesktopWindow inherits Window {
                             }
                         }
                     }
-
-                    if !root.prores: HorizontalLayout {
-                        spacing: 9px;
-                        ChoiceField {
-                            label: "Áudio"; options: ["Copy", "AAC 192 kbps", "AAC 320 kbps"];
-                            enabled: !root.busy;
-                            current-index <=> root.audio-index;
-                        }
-                        ChoiceField {
-                            label: "Container"; options: ["MP4", "MKV", "MOV"];
-                            enabled: !root.busy;
-                            current-index <=> root.container-index;
-                        }
-                    }
-
-                    if root.prores: ChoiceField {
-                        label: "Perfil ProRes"; options: root.prores-profiles;
-                        enabled: !root.busy && !root.detecting;
-                        current-index <=> root.prores-profile-index;
-                    }
-                    if root.prores: HorizontalLayout {
-                        spacing: 9px;
-                        ChoiceField {
-                            label: "Áudio"; options: ["PCM 24 bits", "Copiar"];
-                            enabled: !root.busy && !root.detecting && root.prores-profiles.length > 0;
-                            current-index <=> root.prores-audio-index;
-                        }
-                        VerticalLayout {
-                            spacing: 4px;
-                            Label { text: "Container"; color: Theme.muted; font-size: 12px; }
-                            Label { text: "MOV"; min-height: 36px; }
-                        }
-                    }
-                    if root.prores: Label {
-                        text: "Formato para edição. O arquivo pode ficar maior.";
-                        color: Theme.muted;
-                        font-size: 12px;
-                        min-width: 0px;
-                        wrap: word-wrap;
-                    }
-
-                    Rectangle { vertical-stretch: 1; }
                     Rule {}
-                    Label { text: "Pasta de destino"; color: Theme.muted; font-size: 12px; }
-                    Label {
-                        text: root.destination == "" ? "Selecione onde salvar os vídeos." : root.destination;
-                        min-width: 0px;
-                    }
-                    Action {
-                        label: "Escolher pasta";
-                        enabled: !root.picking && !root.busy;
-                        clicked => { root.pick-destination(); }
+                    VerticalLayout {
+                        spacing: 5px;
+                        Label { text: "Pasta de destino"; color: Theme.muted; font-size: 12px; }
+                        Label {
+                            text: root.destination == "" ? "Selecione onde salvar os vídeos." : root.destination;
+                            min-width: 0px;
+                        }
+                        Action {
+                            label: "Escolher pasta";
+                            enabled: !root.picking && !root.busy;
+                            clicked => { root.pick-destination(); }
+                        }
                     }
                 }
             }
