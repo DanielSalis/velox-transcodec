@@ -15,6 +15,16 @@ O projeto é voltado a quem precisa preparar vídeos em H.264 para reprodução 
 
 A disponibilidade de codecs e aceleração depende da instalação do FFmpeg, dos drivers e do hardware. O aplicativo testa os encoders antes de oferecê-los. ProRes é destinado à edição e pode gerar arquivos maiores que os originais; o tamanho de qualquer saída depende do vídeo e das configurações escolhidas.
 
+## Imagens da aplicação
+
+Interface com um vídeo de exemplo e opções de saída em H.264:
+
+![Janela do Velox Transcode com um vídeo na lista e opções H.264](docs/capturas/velox-interface.png)
+
+Configuração de saída ProRes para edição:
+
+![Janela do Velox Transcode com perfil ProRes 422 e áudio PCM](docs/capturas/velox-prores.png)
+
 ## Instalação a partir do código-fonte
 
 Baixe ou clone este repositório e execute os comandos abaixo em um terminal, a partir da pasta raiz do projeto. A compilação requer **Rust e Cargo 1.95 ou posterior**, um compilador C++, Qt 6 e FFmpeg com `ffprobe` e pelo menos um encoder compatível. O instalador compila uma versão otimizada usando as dependências fixadas em `Cargo.lock`.
