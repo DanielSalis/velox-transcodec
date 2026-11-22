@@ -34,8 +34,9 @@ $QMake = (Resolve-Path -LiteralPath $QMake).Path
 $qtBin = Split-Path -Parent $QMake
 $deploy = Join-Path $qtBin 'windeployqt.exe'
 if (-not (Test-Path -LiteralPath $deploy -PathType Leaf)) { throw "windeployqt.exe não encontrado em $qtBin." }
-$qtVersion = (& $QMake -query QT_VERSION | Select-Object -First 1)
-if ($LASTEXITCODE -ne 0 -or $qtVersion -notmatch '^6\.') { throw 'É necessário um Qt 6 com qmake e windeployqt.' }
+$qtCheck = Test-QtQMake $QMake
+if (-not $qtCheck.Valid) { throw "Não foi possível usar o Qt 6. $($qtCheck.Detail). Confira a instalação e as dependências do Qt ou informe outro qmake com -QMake." }
+Write-Host "Qt $($qtCheck.Detail): $QMake"
 if (-not $FFmpegDirectory) { $FFmpegDirectory = Split-Path -Parent (Find-Executable 'ffmpeg.exe') }
 $ffmpeg = Join-Path $FFmpegDirectory 'ffmpeg.exe'
 $ffprobe = Join-Path $FFmpegDirectory 'ffprobe.exe'

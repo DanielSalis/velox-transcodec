@@ -65,7 +65,7 @@ Para preparar o ambiente de compilação no Ubuntu, instale os pacotes do sistem
 
 ```sh
 sudo apt update
-sudo apt install build-essential pkg-config qt6-base-dev qt6-wayland \
+sudo apt install build-essential pkg-config libfontconfig1-dev qt6-base-dev qt6-wayland \
   libwayland-client0 libxkbcommon0 libxkbcommon-x11-0 desktop-file-utils ffmpeg curl
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
