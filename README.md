@@ -101,6 +101,26 @@ Quando ausentes, o instalador usa o **winget** (App Installer) para obter Rust, 
 
 A conclusão do lote permanece visível na interface; notificações nativas do Windows ainda não foram implementadas. Instalação, seleção e arraste de arquivos, conversão e integração visual ainda precisam ser verificadas no Windows 11. Não há instalador binário publicado.
 
+#### Aceleração NVIDIA no Windows
+
+Para H.264, o Velox testa o NVENC ao iniciar e só oferece a GPU quando um pequeno encode é concluído com sucesso. No Windows, o aplicativo ainda não usa AMD AMF nem Intel Quick Sync, mesmo que apareçam na lista de encoders do FFmpeg. A opção x264 usa a CPU.
+
+Se a NVIDIA não aparecer, verifique o encoder e execute o mesmo teste com o FFmpeg instalado pelo Velox:
+
+```powershell
+$ffmpeg = "$env:LOCALAPPDATA\Programs\Velox Transcode\ffmpeg\ffmpeg.exe"
+& $ffmpeg -hide_banner -encoders | Select-String 'h264_nvenc'
+& $ffmpeg -hide_banner -v error -nostdin -filter_threads 1 `
+  -f lavfi -i "color=s=640x360:r=24" -frames:v 4 `
+  -c:v h264_nvenc -profile:v high -preset p4 `
+  -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -pix_fmt yuv420p `
+  -gpu 0 -rc vbr -cq 23 -b:v 0 -f null -
+```
+
+Se o teste terminar sem mensagem de erro, o encode foi concluído. A mensagem `Driver does not support the required nvenc API version` indica incompatibilidade entre o driver e a versão do FFmpeg. Em um teste com RTX 3070 Ti Laptop, por exemplo, o FFmpeg exigiu a API 13.1 e driver NVIDIA 610.00 ou posterior, enquanto o driver instalado fornecia a API 12.0; o resultado após atualização ainda não foi confirmado. O mínimo pode mudar conforme a versão do FFmpeg.
+
+Atualize o driver para uma versão compatível pelo [site da NVIDIA](https://www.nvidia.com/en-us/geforce/drivers/) ou consulte o fabricante do notebook. Reinicie o Windows, repita o teste e reabra o Velox; não é necessário reinstalar o aplicativo após atualizar o driver. A presença de `h264_nvenc` na lista, por si só, não garante que o encoder consiga iniciar.
+
 ### Outras opções de instalação
 
 `./install.sh --help` mostra as opções disponíveis. Use `--prefix DIRETÓRIO` para escolher outro destino ou `--binary CAMINHO` para instalar um executável release já compilado para a máquina. O destino padrão é `~/.local` no Linux e `~/Applications` no macOS.

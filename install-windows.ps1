@@ -80,6 +80,7 @@ try {
         $shell = New-Object -ComObject WScript.Shell
         $link = $shell.CreateShortcut($shortcut)
         $link.TargetPath = Join-Path $destination 'velox-transcode.exe'
+        $link.IconLocation = "$destination\velox-transcode.exe,0"
         $link.WorkingDirectory = $destination
         $link.Description = 'Velox Transcode'
         $link.Save()
