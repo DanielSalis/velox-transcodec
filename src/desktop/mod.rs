@@ -5,15 +5,20 @@ mod view;
 #[cfg(velox_qt_resize)]
 mod window_resize;
 
-use std::{cell::RefCell, path::PathBuf, rc::Rc, time::Duration};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use std::time::Duration;
 
 #[cfg(target_os = "linux")]
 use notify_rust::Hint;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use notify_rust::Notification;
 use slint::{CloseRequestResponse, ComponentHandle, Weak};
 use tokio::runtime::Handle;
 #[cfg(target_os = "linux")]
-use velox_transcode::{APP_ID, media::MediaEngine};
+use velox_transcode::APP_ID;
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+use velox_transcode::media::MediaEngine;
 use velox_transcode::{domain::BatchSummary, queue};
 
 use crate::DesktopWindow;
@@ -29,6 +34,19 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let media = MediaEngine::default();
     #[cfg(target_os = "macos")]
     let media = macos::media_engine()?;
+    #[cfg(target_os = "windows")]
+    let media = {
+        let executable = std::env::current_exe()?;
+        let bin = executable
+            .parent()
+            .ok_or("Diretório do aplicativo indisponível")?
+            .join("ffmpeg");
+        if bin.join("ffmpeg.exe").is_file() && bin.join("ffprobe.exe").is_file() {
+            MediaEngine::new(bin.join("ffmpeg.exe"), bin.join("ffprobe.exe"))
+        } else {
+            MediaEngine::default()
+        }
+    };
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
         .enable_all()
@@ -225,6 +243,7 @@ fn pick(
     }
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn notify_finished(worker: &Handle, summary: BatchSummary) {
     worker.spawn(async move {
         #[cfg(target_os = "macos")]
@@ -252,4 +271,9 @@ fn notify_finished(worker: &Handle, summary: BatchSummary) {
             Err(_) => eprintln!("O serviço de notificações não respondeu."),
         }
     });
+}
+
+#[cfg(target_os = "windows")]
+fn notify_finished(_worker: &Handle, _summary: BatchSummary) {
+    // A conclusão permanece visível na interface; notificações nativas estão pendentes.
 }

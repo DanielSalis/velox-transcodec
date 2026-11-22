@@ -93,3 +93,9 @@
 **Aceite.** Instalar como usuário comum e repetir a instalação em Fedora e macOS. Validar os registros com `desktop-file-validate` e `plutil`, confirmar a resolução dos ícones e abrir o app pelo GNOME/KDE e pelo Finder. Abrir um vídeo pelo menu **Abrir com** e concluir um lote a partir desse ponto. Confirmar um único ícone por aplicativo ao abrir, minimizar e restaurar a janela. Verificar a legibilidade do ícone em tamanho pequeno, em fundos claro e escuro, e conferir que é possível fixá-lo e reabrir o Velox pelo Dock ou pela barra de tarefas.
 
 **Evidências.** [Instalação, integração com o desktop e matriz de verificação](card-9-instalacao.md)
+
+## Card 10 — Instalação no Windows 11
+
+**Entrega em validação.** `install-windows.ps1` prepara dependências ausentes com winget e aqtinstall no Windows x64, compila o aplicativo, reúne Qt e FFmpeg e instala por usuário com atalho no menu Iniciar. A preparação automática ainda precisa de teste nativo. O aplicativo procura FFmpeg e ffprobe na instalação e recorre ao PATH no desenvolvimento. As notificações nativas do Windows ainda estão pendentes.
+
+**Aceite pendente em Windows 11.** Compilar com Qt 6 e MSVC, instalar e reinstalar como usuário comum, abrir pelo menu Iniciar, testar seleção e arraste de múltiplos arquivos, converter H.264 e ProRes, verificar cancelamento e remover a instalação. Em Windows build 26300, AMD64, a execução do instalador parou na verificação: Cargo, qmake, FFmpeg e cl.exe não estavam no PATH. O repositório estava em um caminho de rede WSL; será necessária uma cópia local para compilar. Nenhum pacote foi produzido nessa tentativa. Registrar versões de Qt, compilador e FFmpeg quando disponíveis.

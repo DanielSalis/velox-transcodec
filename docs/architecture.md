@@ -55,3 +55,7 @@ A landing do card 4 usa HTML estático, fontes locais e JavaScript compartilhado
 O instalador do usuário e o tarball gravam em `~/.local`. RPM, Flatpak e instalação local compartilham o desktop entry, o ícone e os avisos de licença das fontes. O RPM e o tarball usam o FFmpeg e o Qt 6 da distribuição. O Flatpak compila no KDE SDK 6.11 e usa o FFmpeg do runtime, com acesso Wayland/X11, portais, nós DRM e notificações. O script de release gera os três pacotes e o manifesto SHA-256 referenciados na landing. [Distribuição e testes](card-5-distribuicao.md)
 
 No macOS, o mesmo instalador gera `~/Applications/Velox Transcode.app`, incorpora frameworks e plugins Qt e usa o ícone Retina do bundle. O instalador registra os caminhos absolutos de FFmpeg e ffprobe nos recursos do bundle. `cargo run --locked` resolve os executáveis via PATH durante o desenvolvimento. [Instalação no Fedora e macOS](card-9-instalacao.md)
+
+## Instalação no Windows 11 em validação
+
+`install-windows.ps1` compila com Qt 6, usa `windeployqt`, copia FFmpeg e ffprobe para um subdiretório próprio e instala em `%LOCALAPPDATA%` com atalho no menu Iniciar. O motor usa os executáveis instalados ou o PATH no desenvolvimento. A conclusão da fila é mostrada na interface; notificações nativas do Windows e o aceite em sistema Windows continuam pendentes. [Card 10](development-plan.md#card-10--instalação-no-windows-11)

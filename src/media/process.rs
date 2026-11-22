@@ -15,6 +15,8 @@ const DIAGNOSTIC_LIMIT: usize = 16 * 1024;
 
 pub(super) fn command(executable: &std::path::Path) -> Command {
     let mut command = Command::new(executable);
+    #[cfg(target_os = "windows")]
+    command.creation_flags(0x08000000); // CREATE_NO_WINDOW
     command
         .env("LC_ALL", "C")
         .env("AV_LOG_FORCE_NOCOLOR", "1")

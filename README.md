@@ -59,6 +59,19 @@ O instalador coloca o executável, o ícone e o atalho em `~/.local`. Depois da 
 
 Se o Qt não for encontrado durante a compilação, tente `QMAKE=/usr/bin/qmake6 ./install.sh`. A sessão gráfica deve ter um portal de desktop disponível para os seletores de arquivos.
 
+### Ubuntu
+
+Para preparar o ambiente de compilação no Ubuntu, instale os pacotes do sistema e o Rust pelo [rustup](https://rustup.rs/):
+
+```sh
+sudo apt update
+sudo apt install build-essential pkg-config qt6-base-dev qt6-wayland \
+  libwayland-client0 libxkbcommon0 libxkbcommon-x11-0 desktop-file-utils ffmpeg curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+Abra um novo terminal e confirme `cargo --version` (1.95 ou posterior). Depois execute `QMAKE=/usr/bin/qmake6 ./install.sh`. O suporte em Ubuntu ainda não foi validado neste projeto; os codecs disponíveis dependem da distribuição do FFmpeg.
+
 ### macOS
 
 Instale as ferramentas de linha de comando da Apple, o [Homebrew](https://brew.sh/) e o Rust com Cargo 1.95 ou posterior. Depois execute:
@@ -73,6 +86,20 @@ open "$HOME/Applications/Velox Transcode.app"
 Se as ferramentas da Apple já estiverem instaladas, não é necessário instalá-las novamente. O instalador cria o aplicativo em `~/Applications`, incorpora os frameworks e plugins Qt necessários e registra os caminhos de `ffmpeg` e `ffprobe`. Execute `./install.sh` novamente se esses executáveis mudarem de lugar. Caso haja mais de uma instalação de Qt, use a variável `QMAKE` para apontar para o `qmake` do Qt 6 desejado.
 
 O bundle foi verificado por testes simulados; compilação e uso nativos no macOS, incluindo Finder, Dock e notificações, ainda precisam de validação em um Mac.
+
+### Windows 11
+
+O instalador a partir do código-fonte está em validação no Windows 11 x64. Copie o repositório para uma pasta local do Windows se ele estiver em um caminho de rede ou WSL. Na raiz da cópia, execute em PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-windows.ps1
+```
+
+O script compila a versão release, usa `windeployqt` para copiar as dependências Qt e instala o aplicativo e os executáveis FFmpeg em `%LOCALAPPDATA%\Programs\Velox Transcode`. Cria também um atalho no menu Iniciar para a conta atual. Para escolher as dependências explicitamente, passe `-QMake C:\Qt\caminho\bin\qmake.exe -FFmpegDirectory C:\ffmpeg\bin`. Repita o comando para reinstalar; feche o aplicativo antes de atualizar. Para remover, exclua a pasta instalada e o atalho **Velox Transcode** do menu Iniciar do usuário.
+
+Quando ausentes, o instalador usa o **winget** (App Installer) para obter Rust, Visual Studio Build Tools com C++, FFmpeg e Python; instala Qt 6.8.3 para MSVC usando aqtinstall em `%LOCALAPPDATA%\VeloxTranscode`. O Windows pode solicitar autorização de administrador para algumas dependências. São necessários acesso à internet e espaço para os componentes de desenvolvimento. Se o instalador solicitar reinicialização ou uma instalação falhar, reinicie se necessário e execute o comando novamente. Instalações existentes devem ter Cargo 1.95 ou posterior, Qt 6 compatível com MSVC e FFmpeg com ffprobe e um encoder compatível. A remoção do aplicativo não remove essas dependências compartilhadas nem o Qt baixado.
+
+A conclusão do lote permanece visível na interface; notificações nativas do Windows ainda não foram implementadas. Instalação, seleção e arraste de arquivos, conversão e integração visual ainda precisam ser verificadas no Windows 11. Não há instalador binário publicado.
 
 ### Outras opções de instalação
 
